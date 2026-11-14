@@ -21,7 +21,7 @@ const L = {
   rkind: { functional: "وظيفي", organizational: "تنظيمي", technical: "تقني" },
   level: { view: "اطلاع", add: "إضافة", edit: "تعديل", approve: "اعتماد" },
   reg: { school: "المدرسة", personnel: "المنسوبين", students: "المتعلمين", facilities: "المرافق" },
-  act: { INSERT: "إضافة", UPDATE: "تعديل", DELETE: "حذف", rotate_key: "تجديد مفتاح", change_password: "تغيير كلمة المرور", reset_password: "استعادة كلمة المرور الافتراضية", bulk_accounts: "إنشاء حسابات المنسوبين" },
+  act: { INSERT: "إضافة", UPDATE: "تعديل", DELETE: "حذف", rotate_key: "تجديد مفتاح", change_password: "تغيير كلمة المرور", reset_password: "استعادة كلمة المرور الافتراضية", update_contact: "تحديث بيانات التواصل", bulk_accounts: "إنشاء حسابات المنسوبين" },
 };
 const opts = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(v)}</option>`).join("");
 const head = (t, s) => `<h2>${esc(t)}</h2>${s ? `<p class="sub">${esc(s)}</p>` : ""}`;
@@ -106,12 +106,15 @@ async function boot(page, render, o = {}) {
     if (isAdmin) return true; const [r, l] = code.split(":");
     return ({ view: [`${r}:view`, `${r}:add`, `${r}:edit`], add: [`${r}:add`, `${r}:edit`] }[l] || [code]).some((x) => have.has(x));
   };
+  // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
+  const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
+  if (staffOnly && page !== "profile.html") { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
-  const ctx = { me, isAdmin, can, uid: session.user.id };
-  const items = NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
+  const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
   const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
-    `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
+    `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><div class="dnav-in">${items.map(([h, n, e, t, , bd]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("")}</div>
      <div class="dwho"><span class="dname">${esc(me.full_name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>

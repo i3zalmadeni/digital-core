@@ -9,19 +9,25 @@ const PW_RULES = [
 const PW_ERR = {
   wrong_current: "كلمة المرور الحالية غير صحيحة.", too_short: "كلمة المرور أقل من 10 خانات.", too_long: "كلمة المرور أطول من المسموح (72 خانة).",
   has_space: "لا تُقبل المسافات في كلمة المرور.", need_letter: "أضف حرفاً إنجليزياً واحداً على الأقل.", need_digit: "أضف رقماً واحداً على الأقل.",
+  email_login: "حسابك يدخل بالبريد الإلكتروني، فتغيير البريد من صلاحية إدارة النظام.", invalid_email: "البريد الإلكتروني غير صالح.", invalid_phone: "رقم الجوال يبدأ بـ 05 ويتكون من 10 أرقام.", email_taken: "هذا البريد مسجل لمنسوب آخر.",
   is_default: "لا يمكن استخدام كلمة المرور الافتراضية.", is_login: "لا يمكن أن تكون كلمة المرور هي معرّف الدخول (رقم الهوية).", same_as_current: "كلمة المرور الجديدة مطابقة للحالية.",
 };
 boot("profile.html", async (m, c) => {
-  const [mr, pr, rr] = await Promise.all([
+  const [mr, pr] = await Promise.all([
     sb.from("staff_members").select("full_name,specialty,qualification,department,employment_status,account_status,joined_on,job_titles(name_ar),staff_categories(name_ar)").eq("id", c.me.id).maybeSingle(),
-    sb.from("staff_private").select("login_id,email,phone,must_change_password,password_changed_at").eq("staff_id", c.me.id).maybeSingle(),
-    sb.from("staff_roles").select("role_code,roles(name_ar)").eq("staff_id", c.me.id).is("ended_on", null)]);
-  const r = mr.data || {}, p = pr.data || {}, roles = (rr.data || []).map((x) => x.roles?.name_ar || x.role_code);
+    sb.from("staff_private").select("login_id,email,phone,must_change_password,password_changed_at").eq("staff_id", c.me.id).maybeSingle()
+  ]);
+  const r = mr.data || {}, p = pr.data || {};
   const S = 'dir="ltr" autocapitalize="none" autocorrect="off" spellcheck="false"';
-  m.innerHTML = head("حسابي", "بياناتك في النواة الرقمية للاطلاع، وتغيير كلمة المرور. لتصحيح أي بيانات تواصل مع إدارة المدرسة.") +
+  m.innerHTML = head("حسابي", "بيانات دخولك وتواصلك. يمكنك تعديل البريد الإلكتروني ورقم الجوال وكلمة المرور، ولتصحيح غيرها تواصل مع إدارة المدرسة.") +
     `<div class="card"><h3 class="sec" style="margin-top:0">بياناتي</h3><div class="fg">
-      ${[["الاسم", r.full_name], ["معرّف الدخول (رقم الهوية)", p.login_id], ["الفئة", r.staff_categories?.name_ar], ["المسمى الوظيفي", r.job_titles?.name_ar], ["التخصص", r.specialty], ["المؤهل", r.qualification], ["القسم", r.department], ["الحالة الوظيفية", L.emp[r.employment_status]], ["تاريخ الانضمام", r.joined_on ? fmt(r.joined_on) : null], ["الأدوار", roles.join("، ")], ["الجوال", p.phone], ["البريد", p.email]]
+      ${[["الاسم", r.full_name], ["معرّف الدخول (رقم الهوية)", p.login_id], ["المسمى الوظيفي", r.job_titles?.name_ar], ["التخصص", r.specialty]]
         .map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div>
+    <div class="card mt" id="ct"><h3 class="sec" style="margin-top:0">بيانات التواصل</h3>
+      <form id="cf"><div class="fg">
+        <div><label for="em">البريد الإلكتروني</label><input id="em" type="email" ${S} autocomplete="email" value="${esc(p.email || "")}" placeholder="name@example.com"><small class="sub">للتواصل فقط، ولا يغيّر طريقة دخولك.</small></div>
+        <div><label for="ph">رقم الجوال</label><input id="ph" type="tel" ${S} inputmode="tel" autocomplete="tel" value="${esc(p.phone || "")}" placeholder="05xxxxxxxx"><small class="sub">10 أرقام تبدأ بـ 05.</small></div>
+      </div><p class="err" id="ce" role="alert"></p><div class="acts"><button class="btn" id="cs" type="submit">حفظ بيانات التواصل</button></div></form></div>
     <div class="card mt" id="pw"><h3 class="sec" style="margin-top:0">تغيير كلمة المرور</h3>
       ${p.must_change_password ? '<p class="alert">تدخل الآن بكلمة المرور الافتراضية الموحدة. ننصح بتغييرها الآن.</p>' : `<p class="sub">آخر تغيير: ${p.password_changed_at ? fmtT(p.password_changed_at) : "—"}</p>`}
       <div class="card" style="background:var(--soft);box-shadow:none"><b>شروط كلمة المرور الجديدة</b>
@@ -41,6 +47,13 @@ boot("profile.html", async (m, c) => {
   const paint = () => PW_RULES.forEach(([k, , f]) => { const li = g(`[data-r="${k}"]`), ok = f(np.value); li.style.color = np.value ? (ok ? "var(--c4f)" : "var(--c5f)") : ""; li.textContent = (np.value ? (ok ? "✓ " : "✗ ") : "") + PW_RULES.find((x) => x[0] === k)[1]; });
   np.addEventListener("input", paint);
   g("#sh").onchange = (e) => ["#cp", "#np", "#np2"].forEach((i) => (g(i).type = e.target.checked ? "text" : "password"));
+  g("#cf").onsubmit = async (e) => {
+    e.preventDefault(); const er = g("#ce"), b = g("#cs"); er.textContent = ""; b.disabled = true;
+    const { data, error } = await sb.rpc("core_update_my_contact", { p_email: g("#em").value, p_phone: g("#ph").value }); b.disabled = false;
+    if (error) { er.textContent = mapErr(error); return; }
+    if (!data?.ok) { er.textContent = PW_ERR[data?.error] || "تعذر الحفظ."; return; }
+    g("#em").value = data.email || ""; g("#ph").value = data.phone || ""; toast("حُفظت بيانات التواصل");
+  };
   g("#pf").onsubmit = async (e) => {
     e.preventDefault(); const er = g("#pe"); er.textContent = "";
     const cur = g("#cp").value, nv = np.value;
