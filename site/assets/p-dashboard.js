@@ -8,24 +8,37 @@ const IC = {
   school: '<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v10M19 10v10M2 20h20M9 20v-6h6v6"/></svg>',
 };
 boot("dashboard.html", async (m, c) => {
-  const [st, sc, gr, ft] = await Promise.all([sb.rpc("school_stats"), sb.from("school_profile").select("*").maybeSingle(), sb.from("grade_levels").select("code,name_ar").order("sort_order"), sb.from("facility_types").select("code,name_ar")]);
+  const [st, sc, gr, ft, sm, fc] = await Promise.all([sb.rpc("school_stats"), sb.from("school_profile").select("*").maybeSingle(), sb.from("grade_levels").select("code,name_ar").order("sort_order"), sb.from("facility_types").select("code,name_ar"),
+    sb.from("staff_members").select("qualification,specialty,department,job_titles(name_ar)").eq("is_active", true), sb.from("facilities").select("type_code,status,capacity")]);
+  // إحصاءات مشتقة للاطلاع (لا بيانات تواصل): المنسوبون حسب المسمى والمؤهل والتخصص، والمرافق حسب الحالة والطاقة
+  const tally = (list, f, top) => { const o = {}; list.forEach((x) => { const k = f(x) || "غير محدد"; o[k] = (o[k] || 0) + 1; }); const e = Object.entries(o).sort((a, b) => b[1] - a[1]); return Object.fromEntries(top ? e.slice(0, top) : e); };
+  const SM = sm.data || [], FC = fc.data || [], same = (o) => Object.fromEntries(Object.keys(o).map((k) => [k, k]));
+  const byTitle = tally(SM, (x) => x.job_titles?.name_ar), byQual = tally(SM, (x) => x.qualification), bySpec = tally(SM, (x) => x.specialty, 8), byStatus = tally(FC, (x) => x.status);
+  const capByType = {}; FC.forEach((x) => { if (x.capacity) capByType[x.type_code] = (capByType[x.type_code] || 0) + Number(x.capacity); });
   const s = st.data || {}, p = sc.data || {}, G = Object.fromEntries((gr.data || []).map((x) => [x.code, x.name_ar])), FT = Object.fromEntries((ft.data || []).map((x) => [x.code, x.name_ar]));
   const lst = (o, names) => { const e = Object.entries(o || {}), mx = Math.max(1, ...e.map(([, v]) => v)); return e.map(([k, v]) => `<div class="row3"><span>${esc(names[k] || k)}</span><b>${v}</b><div class="track"><i style="width:${Math.round((v / mx) * 100)}%"></i></div></div>`).join("") || '<span class="sub">لا توجد بيانات بعد.</span>'; };
   const kpi = (n, v, t, i) => `<div class="kpi k${i}"><div class="ic">${n}</div><div><b>${v ?? 0}</b><span>${t}</span></div></div>`;
   const reg = (href, ic, tone, t, d) => `<a class="card reg" href="${href}"><div class="ic k${tone}">${ic}</div><div><b>${t}</b><small>${d}</small></div></a>`;
   const yearChip = s.current_year ? `<span class="yr"><i></i>العام الدراسي: ${esc(s.current_year)}</span>` : c.isAdmin ? '<a class="yr" href="school.html#years">إنشاء العام الدراسي الأول ←</a>' : '<span class="yr">لا يوجد عام دراسي حالي</span>';
-  m.innerHTML = `<section class="dash-hero"><div><h2>${esc(p.official_name || "النواة الرقمية")}</h2><p>لوحة تحكم النواة: ملخص السجلات الأربعة، وكلها محسوبة تلقائياً</p></div>${yearChip}</section>
+  m.innerHTML = `<section class="dash-hero"><div><h2>${esc(p.official_name || "النواة الرقمية")}</h2><p>لوحة تحكم النواة: ملخص السجلات الأربعة، وكلها محسوبة تلقائياً${c.isAdmin || c.can("users:manage") || c.can("personnel:edit") || c.can("school:edit") || c.can("facilities:edit") || c.can("students:edit") ? "" : ". هذه الصفحة للاطلاع فقط"}</p></div>${yearChip}</section>
     <div class="grid">${kpi(IC.users, s.personnel_total, "إجمالي المنسوبين", 0)}${kpi(IC.cap, s.students_total, "المتعلمون المنتظمون", 1)}${kpi(IC.grid, s.classes_total, "الفصول الدراسية", 2)}${kpi(IC.building, s.facilities_total, "المرافق", 3)}${kpi(IC.seat, s.capacity, "الطاقة الاستيعابية", 4)}</div>
     <h3 class="sec">إحصاءات أساسية</h3><div class="grid">
       <div class="card brk"><b>المنسوبون حسب الفئة</b>${lst(s.personnel_by_category, CAT_AR)}</div>
       <div class="card brk"><b>المتعلمون حسب المرحلة</b>${lst(s.students_by_grade, G)}</div>
       <div class="card brk"><b>الفصول حسب المرحلة</b>${lst(s.classes_by_grade, G)}</div>
       <div class="card brk"><b>المرافق حسب النوع</b>${lst(s.facilities_by_type, FT)}</div></div>
+    <h3 class="sec">المنسوبون</h3><div class="grid">
+      <div class="card brk"><b>حسب المسمى الوظيفي</b>${lst(byTitle, same(byTitle))}</div>
+      <div class="card brk"><b>حسب المؤهل</b>${lst(byQual, same(byQual))}</div>
+      <div class="card brk"><b>أكثر التخصصات</b>${lst(bySpec, same(bySpec))}</div></div>
+    <h3 class="sec">المرافق</h3><div class="grid">
+      <div class="card brk"><b>المرافق حسب الحالة</b>${lst(byStatus, L.fstatus)}</div>
+      <div class="card brk"><b>الطاقة الاستيعابية حسب النوع</b>${lst(capByType, FT)}</div></div>
     <h3 class="sec">بيانات المدرسة</h3><div class="card"><div class="fg">
       ${[["الرقم الوزاري", p.ministry_no], ["المرحلة", p.stage], ["نوع المدرسة", [p.school_type, L.gender[p.gender]].filter(Boolean).join(" · ")], ["الإدارة التعليمية", p.education_department], ["مكتب التعليم", p.education_office], ["الموقع", [p.city, p.district].filter(Boolean).join("، ")]].map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div>
     <h3 class="sec">السجلات الأربعة</h3><div class="grid">
       ${reg("school.html", IC.school, 0, "المدرسة", "الملف المركزي والقيادة والأعوام والمراحل والفصول.")}
-      ${reg("staff.html", IC.users, 3, "المنسوبون", "الهيئة التعليمية والإدارية والمساندة.")}
+      ${c.can("personnel:view") || c.can("users:manage") ? reg("staff.html", IC.users, 3, "المنسوبون", "الهيئة التعليمية والإدارية والمساندة.") : reg("profile.html", IC.users, 3, "حسابي", "بياناتي وتغيير كلمة المرور.")}
       ${c.can("students:view") ? reg("students.html", IC.cap, 1, "المتعلمون", "الهوية والتسجيل لكل عام وأولياء الأمور.") : ""}
       ${reg("facilities.html", IC.building, 4, "المرافق", "الهوية الثابتة والموقع والمسؤولون والتجهيزات.")}</div>`;
   if (c.isAdmin) { const host = document.createElement("div"); host.id = "pubpanel"; m.appendChild(host); publishPanel(host); }

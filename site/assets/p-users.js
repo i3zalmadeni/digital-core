@@ -22,11 +22,19 @@ boot("access.html", async (m, c) => {
       `<div class="bar"><input id="q" placeholder="بحث بالاسم أو التخصص أو القسم"><select id="fc"><option value="">كل الفئات</option>${C.map((x) => `<option value="${x.code}">${esc(x.name_ar)}</option>`).join("")}</select>
        <select id="fe"><option value="">كل الحالات</option><option value="_live">فعّالون (على رأس العمل / في إجازة)</option><option value="_off">غير فعّالين (منقول / منتهٍ / متقاعد / مؤرشف)</option>${opts(L.emp)}</select>
        <select id="fa"><option value="">كل الحسابات</option>${opts(L.acct)}</select>
-       <button class="btn" id="add">إضافة مستخدم</button><button class="btn sec" id="imp">استيراد Excel</button><button class="btn sec" id="ex">تصدير Excel</button><button class="btn sec" id="hs">سجل التغييرات</button></div>
+       <button class="btn" id="add">إضافة مستخدم</button>${c.isAdmin ? '<button class="btn gold" id="bulk" title="ينشئ حساباً لكل منسوب فعّال بلا حساب: المعرّف رقم الهوية، وكلمة المرور الافتراضية">إنشاء الحسابات الناقصة</button>' : ""}<button class="btn sec" id="imp">استيراد Excel</button><button class="btn sec" id="ex">تصدير Excel</button><button class="btn sec" id="hs">سجل التغييرات</button></div>
        <div id="impbox"></div><div class="tw"><table><thead><tr><th>الاسم</th><th>الفئة</th><th>المسمى</th><th>الحالة الوظيفية</th><th>الحساب</th><th>الأدوار والصلاحيات</th><th></th></tr></thead><tbody id="tb"></tbody></table></div><p class="sub" id="cnt"></p>`;
     const fc = m.querySelector("#fc"); if (qs("cat")) fc.value = qs("cat");
     ["q", "fc", "fe", "fa"].forEach((i) => m.querySelector("#" + i).addEventListener("input", draw)); draw();
-    m.querySelector("#add").onclick = () => form(null); m.querySelector("#imp").onclick = openImport;
+    m.querySelector("#add").onclick = () => form(null);
+    if (m.querySelector("#bulk")) m.querySelector("#bulk").onclick = async () => {
+      const n = rows.filter((r) => !r.user_id && LIVE.includes(r.employment_status)).length;
+      if (!n) { toast("لكل المنسوبين الفعّالين حسابات بالفعل"); return; }
+      if (!confirm(`إنشاء حسابات لـ ${n} منسوباً بلا حساب؟ المعرّف رقم الهوية، وكلمة المرور الافتراضية الموحدة.`)) return;
+      const { data, error } = await sb.rpc("core_create_staff_accounts"); if (error) { toast(mapErr(error), true); return; }
+      const sk = data?.skipped || []; toast(`أُنشئ ${data?.created || 0} حساب${sk.length ? ` وتُجوهل ${sk.length} (لا رقم هوية صالح أو المعرّف مستخدم)` : ""}`, !!sk.length);
+      await load(); draw();
+    }; m.querySelector("#imp").onclick = openImport;
     m.querySelector("#hs").onclick = () => showHistory("staff_members", null, "سجل المستخدمين");
     m.querySelector("#ex").onclick = () => exportXlsx("المستخدمون", ["الاسم", "الفئة", "المسمى", "التخصص", "المؤهل", "القسم", "الحالة الوظيفية", "الحساب", "تاريخ الانضمام", "الرقم الوظيفي", "معرّف الدخول", "البريد", "الجوال"],
       filtered().map((r) => [r.full_name, r.staff_categories?.name_ar, r.job_titles?.name_ar, r.specialty, r.qualification, r.department, L.emp[r.employment_status], L.acct[r.account_status], r.joined_on, priv[r.id]?.employee_no, priv[r.id]?.login_id, priv[r.id]?.email, priv[r.id]?.phone]));
@@ -53,7 +61,7 @@ boot("access.html", async (m, c) => {
     m.querySelector("#tb").innerHTML = list.map((r) => { const ro2 = (r.staff_roles || []).filter((x) => !x.ended_on), np = (r.staff_permissions || []).length, lk = lock(r);
       return `<tr><td>${esc(r.full_name)}${lk ? ' <span class="badge" title="حساب محمي: يعدّله مدير النواة فقط">محمي</span>' : ""}</td><td>${esc(r.staff_categories?.name_ar)}</td><td>${esc(r.job_titles?.name_ar)}</td>
       <td><select data-st="${r.id}" ${lk ? "disabled" : ""} aria-label="الحالة الوظيفية">${opts(L.emp, r.employment_status)}</select>${r.publish_public ? ' <span class="badge" title="يظهر في الموقع العام">منشور</span>' : ""}</td>
-      <td><span class="badge ${r.account_status === "active" ? "ok" : ""}">${L.acct[r.account_status]}</span></td>
+      <td><span class="badge ${r.account_status === "active" ? "ok" : ""}">${L.acct[r.account_status]}</span>${priv[r.id]?.must_change_password ? ' <span class="badge warn" title="لم يغيّر كلمة المرور الافتراضية بعد">افتراضية</span>' : ""}</td>
       <td>${ro2.map((x) => `<span class="badge ok">${esc(label(x))}</span>`).join(" ")}${np ? ` <span class="badge">${np} صلاحية</span>` : ""}${!ro2.length && !np ? "—" : ""}</td>
       <td class="acts"><button class="btn sm sec" data-d="${r.id}">التفاصيل</button>${lk ? "" : `<button class="btn sm sec" data-e="${r.id}">تعديل</button><button class="btn sm sec" data-a="${r.id}">الحساب</button><button class="btn sm sec" data-p="${r.id}">الصلاحيات</button>`}</td></tr>`; }).join("") || '<tr><td colspan="7">لا توجد نتائج.</td></tr>';
     m.querySelector("#cnt").textContent = `${list.length} من ${rows.length} مستخدم`;
@@ -62,7 +70,7 @@ boot("access.html", async (m, c) => {
   async function details(r) {
     const p = priv[r.id] || {}, img = await signed(r.photo_path);
     const md = modal(`<h3>${esc(r.full_name)}</h3><div class="row2" style="align-items:flex-start;gap:16px">${img ? `<img src="${img}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px">` : ""}<div class="fg" style="flex:1">
-      ${[["الفئة", r.staff_categories?.name_ar], ["المسمى", r.job_titles?.name_ar], ["التخصص", r.specialty], ["المؤهل", r.qualification], ["القسم", r.department], ["الحالة الوظيفية", L.emp[r.employment_status]], ["الحساب", L.acct[r.account_status]], ["النشر في الموقع العام", r.publish_public ? "منشور" : "غير منشور"], ["تاريخ الانضمام", fmt(r.joined_on)], ["الرقم الوظيفي", p.employee_no], ["معرّف الدخول", p.login_id], ["البريد", p.email], ["الجوال", p.phone]]
+      ${[["الفئة", r.staff_categories?.name_ar], ["المسمى", r.job_titles?.name_ar], ["التخصص", r.specialty], ["المؤهل", r.qualification], ["القسم", r.department], ["الحالة الوظيفية", L.emp[r.employment_status]], ["الحساب", L.acct[r.account_status]], ["النشر في الموقع العام", r.publish_public ? "منشور" : "غير منشور"], ["تاريخ الانضمام", fmt(r.joined_on)], ["الرقم الوظيفي", p.employee_no], ["معرّف الدخول", p.login_id], ["كلمة المرور", !r.user_id ? "—" : p.must_change_password ? "الافتراضية (لم يغيّرها بعد)" : "غيّرها صاحب الحساب"], ["البريد", p.email], ["الجوال", p.phone]]
         .map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div><div class="acts mt"><button class="btn sec" id="h">سجل التغييرات</button><button class="btn sec" id="cx">إغلاق</button></div>`, true);
     md.el.querySelector("#cx").onclick = md.close; md.el.querySelector("#h").onclick = () => showHistory("staff_members", r.id, r.full_name);
   }
@@ -116,6 +124,7 @@ boot("access.html", async (m, c) => {
         ${row("nl", "معرّف الدخول", `<input id="nl" ${S} value="${esc(p.login_id)}" placeholder="${byId ? "" : "اكتب معرّفاً لتحويل الدخول من البريد إلى معرّف"}">`, '<button class="btn" id="sl">حفظ المعرّف</button>', "أرقام أو حروف إنجليزية، من 3 إلى 40 خانة، ويمكن استخدام . _ -")}
         ${row("ne", "البريد الإلكتروني", `<input id="ne" type="email" ${S} value="${esc(p.email)}" placeholder="اختياري">`, '<button class="btn" id="se">حفظ البريد</button>', byId ? "للتواصل فقط، ولا يؤثر على الدخول." : "هذا الحساب يدخل بالبريد، فتغييره يغيّر بريد الدخول أيضاً.")}
         ${row("np", "كلمة مرور جديدة", `<input id="np" type="password" ${S} autocomplete="new-password" placeholder="10 أحرف على الأقل">`, '<button class="btn sec" id="gp" type="button">توليد</button><button class="btn" id="rp">تعيين</button>', "«توليد» تنشئ كلمة قوية وتعرضها لتسلّمها للمنسوب قبل التعيين.")}
+        <div class="acr"><label>استعادة كلمة المرور</label><div class="bar"><button class="btn gold" id="rd" type="button">استعادة كلمة المرور الافتراضية</button></div><small class="sub">${p.must_change_password ? "الحساب الآن على كلمة المرور الافتراضية ولم يغيّرها صاحبه بعد." : "تعيد كلمة المرور إلى الافتراضية الموحدة (عند نسيانها)، ويُطلب من المنسوب تغييرها من «حسابي»."}</small></div>
         <div class="acts"><button class="btn ${r.account_status === "suspended" ? "" : "bad"}" id="tg">${r.account_status === "suspended" ? "تفعيل الحساب" : "إيقاف الحساب"}</button><button class="btn sec" id="cl">إغلاق</button></div>
         <p class="err" id="ae2"></p>`
       : `<h3>إنشاء حساب: ${esc(r.full_name)}</h3>
@@ -136,6 +145,11 @@ boot("access.html", async (m, c) => {
     g("#sl").onclick = run(() => api("/admin/set-login-id", { staff_id: r.id, login_id: g("#nl").value }));
     g("#se").onclick = run(() => api("/admin/set-email", { staff_id: r.id, email: g("#ne").value }));
     g("#rp").onclick = run(() => api("/admin/reset-password", { staff_id: r.id, password: g("#np").value }), "تم تعيين كلمة المرور", false);
+    g("#rd").onclick = run(async () => {
+      if (!confirm(`استعادة كلمة المرور الافتراضية لحساب «${r.full_name}»؟ لن تعمل كلمة مروره الحالية بعد ذلك.`)) throw new Error("أُلغيت العملية");
+      const { data, error } = await sb.rpc("core_reset_staff_password", { p_staff: r.id }); if (error) throw error;
+      if (!data?.ok) throw new Error({ admin_protected: "هذا حساب محمي: يعدّله مدير النواة فقط", no_account: "لا حساب لهذا المنسوب", self_reset: "غيّر كلمة مرورك من صفحة «حسابي»", default_password_missing: "كلمة المرور الافتراضية غير مضبوطة في الخادم" }[data?.error] || "تعذرت الاستعادة");
+    }, "استُعيدت كلمة المرور الافتراضية", false);
     g("#tg").onclick = run(() => api("/admin/set-status", { staff_id: r.id, status: r.account_status === "suspended" ? "active" : "suspended" }), "تم");
   }
 

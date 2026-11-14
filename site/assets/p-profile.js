@@ -1,0 +1,57 @@
+// حسابي: بيانات المنسوب (عرض فقط) وتغيير كلمة المرور.
+// السياسة نفسها تُفرض في الخادم (core_password_problem)، وهنا للعرض والتحقق الفوري فقط.
+const PW_RULES = [
+  ["len", "10 خانات على الأقل", (v) => v.length >= 10],
+  ["let", "حرف إنجليزي واحد على الأقل (A–Z أو a–z)", (v) => /[A-Za-z]/.test(v)],
+  ["dig", "رقم واحد على الأقل (0–9)", (v) => /[0-9]/.test(v)],
+  ["spc", "بلا مسافات", (v) => v.length > 0 && !/\s/.test(v)],
+];
+const PW_ERR = {
+  wrong_current: "كلمة المرور الحالية غير صحيحة.", too_short: "كلمة المرور أقل من 10 خانات.", too_long: "كلمة المرور أطول من المسموح (72 خانة).",
+  has_space: "لا تُقبل المسافات في كلمة المرور.", need_letter: "أضف حرفاً إنجليزياً واحداً على الأقل.", need_digit: "أضف رقماً واحداً على الأقل.",
+  is_default: "لا يمكن استخدام كلمة المرور الافتراضية.", is_login: "لا يمكن أن تكون كلمة المرور هي معرّف الدخول (رقم الهوية).", same_as_current: "كلمة المرور الجديدة مطابقة للحالية.",
+};
+boot("profile.html", async (m, c) => {
+  const [mr, pr, rr] = await Promise.all([
+    sb.from("staff_members").select("full_name,specialty,qualification,department,employment_status,account_status,joined_on,job_titles(name_ar),staff_categories(name_ar)").eq("id", c.me.id).maybeSingle(),
+    sb.from("staff_private").select("login_id,email,phone,must_change_password,password_changed_at").eq("staff_id", c.me.id).maybeSingle(),
+    sb.from("staff_roles").select("role_code,roles(name_ar)").eq("staff_id", c.me.id).is("ended_on", null)]);
+  const r = mr.data || {}, p = pr.data || {}, roles = (rr.data || []).map((x) => x.roles?.name_ar || x.role_code);
+  const S = 'dir="ltr" autocapitalize="none" autocorrect="off" spellcheck="false"';
+  m.innerHTML = head("حسابي", "بياناتك في النواة الرقمية للاطلاع، وتغيير كلمة المرور. لتصحيح أي بيانات تواصل مع إدارة المدرسة.") +
+    `<div class="card"><h3 class="sec" style="margin-top:0">بياناتي</h3><div class="fg">
+      ${[["الاسم", r.full_name], ["معرّف الدخول (رقم الهوية)", p.login_id], ["الفئة", r.staff_categories?.name_ar], ["المسمى الوظيفي", r.job_titles?.name_ar], ["التخصص", r.specialty], ["المؤهل", r.qualification], ["القسم", r.department], ["الحالة الوظيفية", L.emp[r.employment_status]], ["تاريخ الانضمام", r.joined_on ? fmt(r.joined_on) : null], ["الأدوار", roles.join("، ")], ["الجوال", p.phone], ["البريد", p.email]]
+        .map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div>
+    <div class="card mt" id="pw"><h3 class="sec" style="margin-top:0">تغيير كلمة المرور</h3>
+      ${p.must_change_password ? '<p class="alert">تدخل الآن بكلمة المرور الافتراضية الموحدة. ننصح بتغييرها الآن.</p>' : `<p class="sub">آخر تغيير: ${p.password_changed_at ? fmtT(p.password_changed_at) : "—"}</p>`}
+      <div class="card" style="background:var(--soft);box-shadow:none"><b>شروط كلمة المرور الجديدة</b>
+        <ul id="rules" style="margin:8px 0 0;padding-inline-start:20px;line-height:2">${PW_RULES.map(([k, t]) => `<li data-r="${k}">${t}</li>`).join("")}
+          <li>ألا تكون كلمة المرور الافتراضية، ولا رقم هويتك</li></ul>
+        <small class="sub">لا يُشترط حرف كبير ولا رمز خاص. يمكن أن تكون أطول من 10 خانات (حتى 72)، وكلما طالت كانت أقوى. مثال على الشكل المقبول: <span dir="ltr">Labeed2026x</span> (لا تستخدم المثال نفسه).</small></div>
+      <form id="pf" class="mt" autocomplete="on"><input type="text" name="username" value="${esc(p.login_id || "")}" autocomplete="username" hidden>
+        <div class="fg">
+          <div class="full"><label for="cp">كلمة المرور الحالية</label><input id="cp" type="password" ${S} autocomplete="current-password" required></div>
+          <div><label for="np">كلمة المرور الجديدة</label><input id="np" type="password" ${S} autocomplete="new-password" required></div>
+          <div><label for="np2">تأكيد كلمة المرور الجديدة</label><input id="np2" type="password" ${S} autocomplete="new-password" required></div>
+        </div>
+        <label class="mt" style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="sh" style="width:auto"> إظهار كلمات المرور</label>
+        <p class="err" id="pe" role="alert"></p>
+        <div class="acts"><button class="btn" id="sv" type="submit">حفظ كلمة المرور</button></div></form></div>`;
+  const g = (i) => m.querySelector(i), np = g("#np");
+  const paint = () => PW_RULES.forEach(([k, , f]) => { const li = g(`[data-r="${k}"]`), ok = f(np.value); li.style.color = np.value ? (ok ? "var(--c4f)" : "var(--c5f)") : ""; li.textContent = (np.value ? (ok ? "✓ " : "✗ ") : "") + PW_RULES.find((x) => x[0] === k)[1]; });
+  np.addEventListener("input", paint);
+  g("#sh").onchange = (e) => ["#cp", "#np", "#np2"].forEach((i) => (g(i).type = e.target.checked ? "text" : "password"));
+  g("#pf").onsubmit = async (e) => {
+    e.preventDefault(); const er = g("#pe"); er.textContent = "";
+    const cur = g("#cp").value, nv = np.value;
+    const bad = PW_RULES.find(([, , f]) => !f(nv)); if (bad) { er.textContent = "كلمة المرور الجديدة لا تحقق الشرط: " + bad[1]; return; }
+    if (nv !== g("#np2").value) { er.textContent = "تأكيد كلمة المرور غير مطابق."; return; }
+    const b = g("#sv"); b.disabled = true; b.textContent = "جارٍ الحفظ…";
+    const { data, error } = await sb.rpc("core_change_my_password", { p_current: cur, p_new: nv });
+    b.disabled = false; b.textContent = "حفظ كلمة المرور";
+    if (error) { er.textContent = mapErr(error); return; }
+    if (!data?.ok) { er.textContent = PW_ERR[data?.error] || "تعذر تغيير كلمة المرور."; return; }
+    toast("تم تغيير كلمة المرور. استخدمها في دخولك القادم.");
+    setTimeout(() => location.reload(), 1200);
+  };
+});

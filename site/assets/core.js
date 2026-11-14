@@ -21,7 +21,7 @@ const L = {
   rkind: { functional: "وظيفي", organizational: "تنظيمي", technical: "تقني" },
   level: { view: "اطلاع", add: "إضافة", edit: "تعديل", approve: "اعتماد" },
   reg: { school: "المدرسة", personnel: "المنسوبين", students: "المتعلمين", facilities: "المرافق" },
-  act: { INSERT: "إضافة", UPDATE: "تعديل", DELETE: "حذف", rotate_key: "تجديد مفتاح" },
+  act: { INSERT: "إضافة", UPDATE: "تعديل", DELETE: "حذف", rotate_key: "تجديد مفتاح", change_password: "تغيير كلمة المرور", reset_password: "استعادة كلمة المرور الافتراضية", bulk_accounts: "إنشاء حسابات المنسوبين" },
 };
 const opts = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(v)}</option>`).join("");
 const head = (t, s) => `<h2>${esc(t)}</h2>${s ? `<p class="sub">${esc(s)}</p>` : ""}`;
@@ -82,9 +82,9 @@ async function showHistory(table, id, title) {
   md.el.querySelector("#cx").onclick = md.close;
 }
 
-const NAV = [["dashboard.html", "الرئيسية", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", null, "personnel_total"],
+const NAV = [["dashboard.html", "الرئيسية", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
-  ["access.html", "المستخدمون والصلاحيات", "lock", "تعديل بيانات المستخدمين وحالاتهم وحساباتهم وصلاحياتهم", "users:manage"], ["settings.html", "إعدادات النواة والتكامل", "gear", "الأنظمة والمفاتيح والسجلات", "admin"]];
+  ["access.html", "المستخدمون والصلاحيات", "lock", "تعديل بيانات المستخدمين وحالاتهم وحساباتهم وصلاحياتهم", "users:manage"], ["settings.html", "إعدادات النواة والتكامل", "gear", "الأنظمة والمفاتيح والسجلات", "admin"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"]];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html"); return; }
@@ -108,7 +108,7 @@ async function boot(page, render, o = {}) {
   };
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, uid: session.user.id };
-  const items = NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : can(n[4])));
+  const items = NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
   const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML("dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
@@ -117,12 +117,19 @@ async function boot(page, render, o = {}) {
      <div class="dwho"><span class="dname">${esc(me.full_name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
-     <main class="wrap" id="main"></main>${footerHTML}`; bindNav();
+     <div class="wrap" id="topnote"></div><main class="wrap" id="main"></main>${footerHTML}`; bindNav();
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
   sb.rpc("school_stats").then(({ data }) => { if (data) document.querySelectorAll("[data-b]").forEach((e) => { const v = data[e.dataset.b]; if (v !== undefined) e.textContent = v; }); });
   const main = document.getElementById("main");
+  // تنبيه دائم ما دامت كلمة المرور هي الافتراضية (يختفي بعد تغييرها من «حسابي»)
+  sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle().then(({ data }) => {
+    if (!data?.must_change_password || page === "profile.html") return;
+    const a = document.createElement("div"); a.className = "alert"; a.setAttribute("role", "status");
+    a.innerHTML = 'تدخل بكلمة المرور الافتراضية. غيّرها من <a href="profile.html#pw"><b>حسابي</b></a> لحماية حسابك.';
+    a.style.marginTop = "14px"; document.getElementById("topnote").appendChild(a);
+  });
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = '<p class="err">تعذر تحميل الصفحة.</p>'; }
 }
 
