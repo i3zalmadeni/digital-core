@@ -82,8 +82,9 @@ async function showHistory(table, id, title) {
   md.el.querySelector("#cx").onclick = md.close;
 }
 
+ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5V5.5M8 7h8M8 11h6"/>';
 const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
-  ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
+  ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["teaching.html", "إسناد التدريس", "book", "معلم كل مادة في كل فصل للعام الحالي", "school:view"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
   ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
@@ -131,7 +132,7 @@ async function boot(page, render, o = {}) {
     if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "profile.html#pw", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
     if (isAdmin) {
       const { data: L } = await sb.from("audit_logs").select("id,actor_id,action,table_name,created_at").neq("actor_id", session.user.id).not("table_name", "like", "mirat.%").order("created_at", { ascending: false }).limit(400);
-      const T = { students: "المتعلمين", student_enrollments: "قيود المتعلمين", student_private: "بيانات تواصل المتعلمين", student_guardians: "أولياء الأمور", guardians: "أولياء الأمور", staff_members: "المنسوبين", staff_private: "البيانات الخاصة للمنسوبين", staff_roles: "الأدوار", staff_permissions: "الصلاحيات", facilities: "المرافق", facility_equipment: "تجهيزات المرافق", class_sections: "الفصول", academic_years: "الأعوام الدراسية", school_profile: "بيانات المدرسة", school_leadership: "المواقع القيادية", systems: "الأنظمة" };
+      const T = { students: "المتعلمين", student_enrollments: "قيود المتعلمين", student_private: "بيانات تواصل المتعلمين", student_guardians: "أولياء الأمور", guardians: "أولياء الأمور", staff_members: "المنسوبين", staff_private: "البيانات الخاصة للمنسوبين", staff_roles: "الأدوار", staff_permissions: "الصلاحيات", teaching_assignments: "إسناد التدريس", subjects: "المواد الدراسية", facilities: "المرافق", facility_equipment: "تجهيزات المرافق", class_sections: "الفصول", academic_years: "الأعوام الدراسية", school_profile: "بيانات المدرسة", school_leadership: "المواقع القيادية", systems: "الأنظمة" };
       const AC = { INSERT: ["إضافة", "ok", "inbox"], UPDATE: ["تعديل", "info", "file"], DELETE: ["حذف", "bad", "x"] };
       const rows = (L || []).filter((r) => T[r.table_name] && AC[r.action]);
       const ids = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))];

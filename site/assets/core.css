@@ -990,3 +990,22 @@ button.wip-add{border:2px dashed rgba(90,58,6,.35);background:linear-gradient(16
 .intro-l:hover .il-a{transform:translateY(-2px);box-shadow:0 10px 22px rgba(240,179,74,.4)}
 #systems{margin-bottom:44px}
 .sc-facts dd a{display:inline-block;direction:ltr}
+
+/* ===== إسناد التدريس ===== */
+.ta-k .stat b{font-size:1.6rem}
+.ta-qf{display:grid;grid-template-columns:2fr 1fr;gap:12px}.ta-qf label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.88rem}
+.ta-qs{display:grid;gap:8px;margin:14px 0}.ta-qs>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.ta-qs b{min-width:120px;font-size:.88rem}
+.ta-ch{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;cursor:pointer;font-weight:600}
+.ta-ch input{width:auto;margin:0}.ta-ch:has(input:checked){border-color:var(--brand);background:var(--c0b)}
+table.ta{min-width:1100px}.ta th,.ta td{padding:6px;text-align:center;font-size:.85rem;vertical-align:middle}
+.ta thead th{position:sticky;top:0;background:var(--surface);z-index:2;white-space:normal;min-width:110px}
+.ta tbody th{position:sticky;inset-inline-start:0;background:var(--surface);z-index:1;white-space:nowrap;min-width:70px}
+.ta select{padding:6px 8px;font-size:.8rem;border-radius:10px;min-width:120px}
+.ta td.on select{border-color:var(--brand);background:var(--c0b);font-weight:700}
+.ta-g td{background:var(--soft,#eef5f6);font-weight:800;text-align:start;padding:8px 12px}
+.ta-w{max-height:72vh;overflow:auto;border-radius:16px}
+.ta-tl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.ta-th{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.ta-th small{color:var(--ink2)}.ta-n{margin-inline-start:auto;font-size:.8rem;font-weight:700;color:var(--brand)}
+.ta-r{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px dashed var(--line)}.ta-r>span{min-width:110px;font-weight:700;font-size:.85rem}
+.ta-r i{font-style:normal;display:inline-block;background:var(--c0b);border-radius:8px;padding:2px 8px;margin:2px;font-size:.8rem}
+@media (max-width:700px){.ta-qf{grid-template-columns:1fr}}
