@@ -108,11 +108,11 @@ async function boot(page, render, o = {}) {
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
   const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
-  if (staffOnly && page !== "profile.html") { location.replace("profile.html"); return; }
+  if (staffOnly && page !== "profile.html" && page !== "inbox.html") { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
   const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
-  const cur = NAV.find((n) => n[0] === page) || [page, "لوحة التحكم", "grid", "لوحة تحكم النواة الرقمية"];
+  const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
@@ -125,7 +125,7 @@ async function boot(page, render, o = {}) {
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: كلمة المرور الافتراضية لكل منسوب، ولمدير النواة آخر العمليات على سجلات النواة من غيره (مجمّعة)، و«مشاهدة الكل» سجل العمليات
-  ubMount({ key: "core", uid: session.user.id, allUrl: isAdmin ? "settings.html?tab=audit" : null, load: async () => {
+  ubMount({ key: "core", uid: session.user.id, allUrl: "inbox.html", load: async () => {
     const N = [];
     const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();
     if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "profile.html#pw", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
