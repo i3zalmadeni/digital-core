@@ -84,7 +84,7 @@ async function showHistory(table, id, title) {
 
 const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
-  ["access.html", "المستخدمون والصلاحيات", "lock", "تعديل بيانات المستخدمين وحالاتهم وحساباتهم وصلاحياتهم", "users:manage"], ["settings.html", "إعدادات النواة والتكامل", "gear", "الأنظمة والمفاتيح والسجلات", "admin"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"]];
+  ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html"); return; }

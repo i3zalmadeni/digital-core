@@ -18,7 +18,7 @@ boot("access.html", async (m, c) => {
   await load();
   const label = (r) => `${R[r.role_code]?.name_ar || r.role_code}${r.system_code ? " · " + (SY[r.system_code] || r.system_code) : ""}`;
   function paint() {
-    m.innerHTML = head("المستخدمون والصلاحيات", "كل تعديل على المستخدمين من هنا: البيانات والحالة والحساب والأدوار والصلاحيات. أما «المنسوبون» فيعرض العاملين الحاليين دون تعديل.") +
+    m.innerHTML = head("الصلاحيات", "كل تعديل على المستخدمين من هنا: البيانات والحالة والحساب والأدوار والصلاحيات. أما «المنسوبون» فيعرض العاملين الحاليين دون تعديل.") +
       `<div class="bar"><input id="q" placeholder="بحث بالاسم أو التخصص أو القسم"><select id="fc"><option value="">كل الفئات</option>${C.map((x) => `<option value="${x.code}">${esc(x.name_ar)}</option>`).join("")}</select>
        <select id="fe"><option value="">كل الحالات</option><option value="_live">فعّالون (على رأس العمل / في إجازة)</option><option value="_off">غير فعّالين (منقول / منتهٍ / متقاعد / مؤرشف)</option>${opts(L.emp)}</select>
        <select id="fa"><option value="">كل الحسابات</option>${opts(L.acct)}</select>

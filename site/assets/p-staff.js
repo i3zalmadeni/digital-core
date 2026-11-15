@@ -1,6 +1,6 @@
 const CAT_AR2 = { teaching: "الهيئة التعليمية", administrative: "الهيئة الإدارية", support: "الهيئة المساندة" };
 boot("staff.html", async (m, c) => {
-  // المنسوبون: عرض فقط للمنسوبين المعتمدين العاملين حالياً (على رأس العمل أو في إجازة). كل التعديل من «المستخدمون والصلاحيات».
+  // المنسوبون: عرض فقط للمنسوبين المعتمدين العاملين حالياً (على رأس العمل أو في إجازة). كل التعديل من «الصلاحيات».
   if (!(c.can("personnel:view") || c.can("users:manage"))) { location.replace("dashboard.html"); return; }
   const cats = await sb.from("staff_categories").select("*").order("sort_order"), C = cats.data || [];
   const canContact = c.can("personnel_contact:view") || c.can("personnel:edit") || c.can("users:manage");
