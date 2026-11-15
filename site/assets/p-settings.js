@@ -3,6 +3,7 @@ const SYS_ST = { planned: "مخطط", active: "نشط", suspended: "موقوف" 
 const IMP_TABLE = { personnel: "staff_members", students: "students", facilities: "facilities" };
 boot("settings.html", async (m, c) => {
   let tab = "systems";
+  { const q = new URLSearchParams(location.search).get("tab"); if (["systems", "logs", "audit", "imports", "api", "backup"].includes(q)) tab = q; }
   const TABS = [["systems", "الأنظمة والتكامل"], ["logs", "سجل الوصول"], ["audit", "سجل العمليات"], ["imports", "عمليات الاستيراد"], ["api", "توثيق الواجهة"], ["backup", "النسخ والاستعادة"]];
   const paint = () => {
     m.innerHTML = head("إعدادات النواة والتكامل", "ربط الأنظمة المستقلة بالنواة عبر واجهة قراءة آمنة ومسجلة") + `<div class="tabs">${TABS.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${n}</button>`).join("")}</div><div id="body"></div>`;

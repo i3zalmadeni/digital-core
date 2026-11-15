@@ -117,13 +117,33 @@ async function boot(page, render, o = {}) {
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><div class="dnav-in">${items.map(([h, n, e, t, , bd]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("")}</div>
-     <div class="dwho"><span class="dname">${esc(me.full_name)}</span><a class="loginbtn" href="#" id="out">خروج</a></div></div></div></header>
+     <div class="dwho">${ubBarHTML(me.full_name, "profile.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <div class="wrap" id="topnote"></div><main class="wrap" id="main"></main>${footerHTML}`; bindNav();
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
+  // الإشعارات: كلمة المرور الافتراضية لكل منسوب، ولمدير النواة آخر العمليات على سجلات النواة من غيره (مجمّعة)، و«مشاهدة الكل» سجل العمليات
+  ubMount({ key: "core", uid: session.user.id, allUrl: isAdmin ? "settings.html?tab=audit" : null, load: async () => {
+    const N = [];
+    const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();
+    if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "profile.html#pw", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
+    if (isAdmin) {
+      const { data: L } = await sb.from("audit_logs").select("id,actor_id,action,table_name,created_at").neq("actor_id", session.user.id).not("table_name", "like", "mirat.%").order("created_at", { ascending: false }).limit(400);
+      const T = { students: "المتعلمين", student_enrollments: "قيود المتعلمين", student_private: "بيانات تواصل المتعلمين", student_guardians: "أولياء الأمور", guardians: "أولياء الأمور", staff_members: "المنسوبين", staff_private: "البيانات الخاصة للمنسوبين", staff_roles: "الأدوار", staff_permissions: "الصلاحيات", facilities: "المرافق", facility_equipment: "تجهيزات المرافق", class_sections: "الفصول", academic_years: "الأعوام الدراسية", school_profile: "بيانات المدرسة", school_leadership: "المواقع القيادية", systems: "الأنظمة" };
+      const AC = { INSERT: ["إضافة", "ok", "inbox"], UPDATE: ["تعديل", "info", "file"], DELETE: ["حذف", "bad", "x"] };
+      const rows = (L || []).filter((r) => T[r.table_name] && AC[r.action]);
+      const ids = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))];
+      const nm = {}; if (ids.length) { const { data: S } = await sb.from("staff_members").select("user_id,full_name").in("user_id", ids); (S || []).forEach((x) => (nm[x.user_id] = x.full_name)); }
+      const G = new Map();
+      rows.forEach((r) => { const day = new Date(r.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }), k = [r.actor_id, r.table_name, r.action, day].join("|");
+        const g = G.get(k); if (g) g.n++; else G.set(k, { r, n: 1, day }); });
+      [...G.values()].slice(0, 12).forEach(({ r, n, day }) => N.push({ id: "a:" + r.id + ":" + n, t: r.created_at, tone: AC[r.action][1], icon: AC[r.action][2], href: "settings.html?tab=audit",
+        title: `${AC[r.action][0]} في ${T[r.table_name]}${n > 1 ? ` (${n === 2 ? "سجلان" : n <= 10 ? n + " سجلات" : n + " سجلاً"})` : ""}`, body: `بواسطة ${nm[r.actor_id] || "النظام"}` }));
+    }
+    return N;
+  } });
   sb.rpc("school_stats").then(({ data }) => { if (data) document.querySelectorAll("[data-b]").forEach((e) => { const v = data[e.dataset.b]; if (v !== undefined) e.textContent = v; }); });
   const main = document.getElementById("main");
   // تنبيه دائم ما دامت كلمة المرور هي الافتراضية (يختفي بعد تغييرها من «حسابي»)
