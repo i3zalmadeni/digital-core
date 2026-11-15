@@ -82,7 +82,7 @@ async function showHistory(table, id, title) {
   md.el.querySelector("#cx").onclick = md.close;
 }
 
-const NAV = [["dashboard.html", "الرئيسية", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
+const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
   ["access.html", "المستخدمون والصلاحيات", "lock", "تعديل بيانات المستخدمين وحالاتهم وحساباتهم وصلاحياتهم", "users:manage"], ["settings.html", "إعدادات النواة والتكامل", "gear", "الأنظمة والمفاتيح والسجلات", "admin"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"]];
 async function boot(page, render, o = {}) {
