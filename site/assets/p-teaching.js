@@ -42,7 +42,7 @@ boot("teaching.html", async (m, c) => {
         <label>المعلم<select id="qT"><option value="">اختر المعلم</option>${teachers.map((s) => `<option value="${s.id}">${esc(s.full_name)}${s.specialty ? " — " + esc(s.specialty) : ""}</option>`).join("")}</select></label>
         <label>المادة<select id="qS">${SJ.map((s) => `<option value="${s.code}">${esc(s.name_ar)}</option>`).join("")}</select></label></div>
         <div class="ta-qs" id="qC">${G.filter((g) => SC.some((s) => s.grade_code === g.code)).map((g) => `<div><b>${esc(g.name_ar)}</b>${SC.filter((s) => s.grade_code === g.code).map((s) => `<label class="ta-ch"><input type="checkbox" value="${s.id}">${esc(s.name)}</label>`).join("")}</div>`).join("")}</div>
-        <div class="acts"><button class="btn" id="qGo" type="button">إسناد للفصول المحددة</button><span class="sub" id="qN" style="margin:0"></span></div></div>` : ""}
+        <div class="acts"><button class="btn sec" id="qAll" type="button">تحديد كل الفصول</button><button class="btn" id="qGo" type="button">إسناد للفصول المحددة</button><span class="sub" id="qN" style="margin:0"></span></div></div>` : ""}
       <div class="tabs mt" role="tablist"><button type="button" data-v="s" class="${view === "s" ? "on" : ""}">حسب الفصول</button><button type="button" data-v="t" class="${view === "t" ? "on" : ""}">حسب المعلمين</button></div>
       <div id="tv"></div>`;
     $$("[data-v]", m).forEach((b) => (b.onclick = () => { view = b.dataset.v; history.replaceState(null, "", "teaching.html" + (view === "t" ? "?v=t" : "")); paint(); }));
@@ -53,6 +53,7 @@ boot("teaching.html", async (m, c) => {
       $("#qN").textContent = n ? `${n} فصل${taken ? ` · ${taken} منها مُسند لمعلم آخر وسيُستبدل` : ""}` : ""; };
     $("#qS").onchange = () => { $$("#qC input").forEach((x) => { x.checked = A.get(x.value + "|" + $("#qS").value) === $("#qT").value && !!$("#qT").value; }); qInfo(); };
     $("#qT").onchange = $("#qS").onchange; $$("#qC input").forEach((x) => (x.onchange = qInfo));
+    $("#qAll").onclick = () => { const all = $$("#qC input").every((x) => x.checked); $$("#qC input").forEach((x) => (x.checked = !all)); $("#qAll").textContent = all ? "تحديد كل الفصول" : "إلغاء التحديد"; qInfo(); };
     $("#qGo").onclick = async () => {
       const t = $("#qT").value, s = $("#qS").value, secs = $$("#qC input:checked").map((x) => x.value);
       if (!t || !secs.length) { toast("اختر المعلم والفصول.", true); return; }
