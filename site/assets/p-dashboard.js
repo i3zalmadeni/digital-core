@@ -20,7 +20,7 @@ boot("dashboard.html", async (m, c) => {
   const kpi = (n, v, t, i) => `<div class="kpi k${i}"><div class="ic">${n}</div><div><b>${v ?? 0}</b><span>${t}</span></div></div>`;
   const reg = (href, ic, tone, t, d) => `<a class="card reg" href="${href}"><div class="ic k${tone}">${ic}</div><div><b>${t}</b><small>${d}</small></div></a>`;
   const yearChip = s.current_year ? `<span class="yr"><i></i>العام الدراسي: ${esc(s.current_year)}</span>` : c.isAdmin ? '<a class="yr" href="school.html#years">إنشاء العام الدراسي الأول ←</a>' : '<span class="yr">لا يوجد عام دراسي حالي</span>';
-  m.innerHTML = `<section class="dash-hero"><div><h2>${esc(p.official_name || "النواة الرقمية")}</h2><p>لوحة تحكم النواة: ملخص السجلات الأربعة، وكلها محسوبة تلقائياً${c.isAdmin || c.can("users:manage") || c.can("personnel:edit") || c.can("school:edit") || c.can("facilities:edit") || c.can("students:edit") ? "" : ". هذه الصفحة للاطلاع فقط"}</p></div>${yearChip}</section>
+  m.innerHTML = `${s.current_year || !c.isAdmin ? "" : '<div class="alert"><a href="school.html#years">إنشاء العام الدراسي الأول ←</a></div>'}
     <div class="grid">${kpi(IC.users, s.personnel_total, "إجمالي المنسوبين", 0)}${kpi(IC.cap, s.students_total, "المتعلمون المنتظمون", 1)}${kpi(IC.grid, s.classes_total, "الفصول الدراسية", 2)}${kpi(IC.building, s.facilities_total, "المرافق", 3)}${kpi(IC.seat, s.capacity, "الطاقة الاستيعابية", 4)}</div>
     <h3 class="sec">إحصاءات أساسية</h3><div class="grid">
       <div class="card brk"><b>المنسوبون حسب الفئة</b>${lst(s.personnel_by_category, CAT_AR)}</div>
