@@ -122,6 +122,10 @@ async function boot(page, render, o = {}) {
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <div class="wrap" id="topnote"></div><main class="wrap" id="main"></main>${footerHTML}`; bindNav();
+  if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "core", central: true, after: "#main" });
+  if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
+    PK.mountAnnouncements({ sb, system: "core", page: page === "dashboard.html" || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
+    if (page === "dashboard.html" || (staffOnly && page === "profile.html")) PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" }); }
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
