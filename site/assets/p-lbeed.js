@@ -30,8 +30,7 @@ async function lbeedPage(m) {
 
   m.innerHTML = `<div class="lb">
     <section class="lb-hero" aria-label="نبض لبيد"><div class="lb-beat" id="lbBeat" aria-hidden="true"></div><div class="in"><div class="row"><div class="ttl"><h2>يحدث في لبيد</h2><p class="tag">لبيد تتحرك، وإنجازاتها تُرى</p></div>
-      <div class="lb-mini" id="lbStats"></div>
-      <div class="dt"><b id="lbH"></b><span id="lbG"></span><span class="live" id="lbLive"><i></i><span id="lbLiveT">جارٍ التحميل</span></span><span id="lbU"></span></div></div></div></section>
+      <div class="dt"><b id="lbH"></b><span id="lbG"></span><span class="clk" id="lbClk"></span><span class="live" id="lbLive"><i></i><span id="lbLiveT">جارٍ التحميل</span></span><span id="lbU"></span></div></div></div></section>
     <nav class="lb-tabs" aria-label="عروض النافذة"><div class="in"><button data-v="ov" class="on" type="button">نظرة عامة</button><button data-v="log" type="button">سجل التحديثات</button><span class="sp"></span><button class="rf" id="lbR" type="button">${ico("refresh")} تحديث</button></div></nav>
     <div class="lb-main"><div id="lbBody"></div>
     <p style="color:#6a8696;font-size:.82rem;margin:30px 0 6px">نافذة قراءة فقط تجمع ما تسجله أنظمة المدرسة السبعة من مصادرها الأصلية دون نسخ أو تعديل، وتحترم صلاحيات كل نظام. لا تُعرض فيها حالات فردية للطلاب، وتظهر الصور المنشورة فقط.</p></div></div>`;
@@ -39,6 +38,7 @@ async function lbeedPage(m) {
   const nd = nowRy();
   m.querySelector("#lbH").textContent = hijri(nd);
   m.querySelector("#lbG").textContent = greg(nd) + " م";
+  const clk = () => { const e = m.querySelector("#lbClk"); if (e) e.textContent = new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Riyadh" }); }; clk(); setInterval(clk, 1000);
   const rpc = async (fn, args) => { const { data, error } = await sb.rpc(fn, args || {}); if (error) throw error; return data; };
   const setStatus = () => {
     const el = m.querySelector("#lbLive"); el.classList.toggle("off", !ok);
@@ -79,14 +79,9 @@ async function lbeedPage(m) {
   function countUp(el, to) { const n = Number(to) || 0; if (matchMedia("(prefers-reduced-motion:reduce)").matches || n === 0) { el.textContent = num(n); return; } const t0 = performance.now(); (function f(t) { const k = Math.min(1, (t - t0) / 1400); el.textContent = num(Math.round(n * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(f); })(t0); }
 
   /* ---------- الغلاف ---------- */
-  let heroDone = false;
   async function hero() {
-    const [pl, dd] = await Promise.all([rpc("lb_pulse", { p_days: 14 }), rpc("lb_day", { p_day: null })]);
+    const pl = await rpc("lb_pulse", { p_days: 14 });
     m.querySelector("#lbBeat").innerHTML = heartbeat(pl.days);
-    const tot = pl.days.reduce((a, x) => a + x.n, 0), tdy = pl.days[pl.days.length - 1].n, active = Object.values(pl.by_sys).filter((v) => v > 0).length;
-    const meet = (dd.pulse.meetings || 0) + (dd.pulse.pro_meetings || 0);
-    m.querySelector("#lbStats").innerHTML = [["حركة اليوم", tdy], ["آخر 14 يوماً", tot], ["أنظمة نشطة من 7", active], ["اجتماعات اليوم", meet]].map(([l, v]) => `<div><b data-n="${v}">0</b><span>${l}</span></div>`).join("");
-    if (!heroDone) { m.querySelectorAll("#lbStats b").forEach((b) => countUp(b, b.dataset.n)); heroDone = true; } else m.querySelectorAll("#lbStats b").forEach((b) => (b.textContent = num(b.dataset.n)));
     return pl;
   }
 
@@ -140,47 +135,68 @@ async function lbeedPage(m) {
       <div class="lb-leg" style="margin-top:10px"><span><i style="background:#0f8a94"></i>قادم</span><span><i style="background:#24895a"></i>جارٍ الآن</span><span><i style="background:#9db4bc"></i>انتهى</span><span><i style="background:#f0b34a"></i>بانتظار الاعتماد</span></div>`;
   }
 
+  /* ----- توثيقات الخطط (شريط الصور) ----- */
+  let DOCS = [];
+  function docsStrip(items) {
+    DOCS = items;
+    if (!items.length) return `<section class="lb-p lb-docs"><div class="dh"><h4>آخر التوثيقات</h4><span>من الخطط الذكية</span></div>${em("لا توثيقات بصور بعد. تظهر هنا فور توثيق أي برنامج.", ["/smart-plans/", "فتح الخطط الذكية"])}</section>`;
+    const one = (x, i) => `<button type="button" class="dc" data-i="${i}"><span class="im"><img loading="lazy" alt="" src="${esc(pub("sp-evidence", x.images[0]))}">${x.images.length > 1 ? `<i>${num(x.images.length)} صور</i>` : ""}</span><span class="tx"><b>${esc(x.title)}</b><small>${esc(x.executor || "—")}${x.date ? " · " + esc(fmt(x.date)) : ""}</small></span></button>`;
+    const set = items.map(one).join("");
+    return `<section class="lb-p lb-docs" aria-label="آخر التوثيقات"><div class="dh"><h4>آخر التوثيقات</h4><span>من الخطط الذكية · اضغط للخبر كاملاً</span></div><div class="vp"><div class="tr" style="animation-duration:${Math.max(30, items.length * 7)}s">${set}${items.length > 3 ? set : ""}</div></div></section>`;
+  }
+  function docDlg(x) {
+    let dlg = m.querySelector("#lbDlg"); if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "lbDlg"; dlg.className = "lb-dlg"; m.querySelector(".lb").appendChild(dlg); dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); }); }
+    const rows = [["المنفذ", x.executor], ["تاريخ التنفيذ", x.date ? fmt(x.date) : ""], ["المكان", x.location], ["المشاركون", x.participants], ["عدد المستفيدين", x.beneficiaries]].filter((r) => r[1]);
+    dlg.innerHTML = `<div class="hd" style="--c:#b86d0c"><span class="ty">توثيق · الخطط الذكية</span><h3>${esc(x.title)}</h3></div><div class="dg">${x.images.map((p) => `<a href="${esc(pub("sp-evidence", p))}" target="_blank" rel="noopener"><img alt="" src="${esc(pub("sp-evidence", p))}"></a>`).join("")}</div>
+      <dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}${x.description ? `<div><dt>الوصف</dt><dd>${esc(x.description)}</dd></div>` : ""}${x.outputs ? `<div><dt>المخرجات</dt><dd>${esc(x.outputs)}</dd></div>` : ""}</dl><div class="ft"><a class="go" href="${esc(x.link || "/smart-plans/")}">فتح في الخطط الذكية</a><button type="button" id="dX">إغلاق</button></div>`;
+    dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  }
+
+  /* ----- التقويم + لقاءات اليوم ----- */
+  const CAL = { mon: null, sel: null }; const wkCache = {};
+  const ws0 = (s) => addDays(s, -new Date(s + "T12:00:00").getDay());
+  const GROUPS = [["meeting", "الاجتماعات واللقاءات"], ["program", "البرامج والأنشطة"], ["booking", "حجوزات المرافق"], ["task", "المهام والمواعيد"], ["calendar", "التقويم المدرسي"]];
+  async function calWidget(host) {
+    const td = iso(nowRy()); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01";
+    const [mo, wk] = await Promise.all([rpc("lb_month", { p_month: CAL.mon }), (async () => { const k = ws0(CAL.sel); return rpc("lb_week", { p_from: k }); })()]);
+    const dots = {}; (mo.events || []).forEach((e) => ((dots[e.day] = dots[e.day] || new Set()).add(e.sys)));
+    const first = new Date(CAL.mon + "T12:00:00"), pad = first.getDay(), dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const cells = []; for (let i = 0; i < pad; i++) cells.push(`<span></span>`);
+    for (let d = 1; d <= dim; d++) { const k = CAL.mon.slice(0, 8) + String(d).padStart(2, "0"), ds = [...(dots[k] || [])].slice(0, 3); cells.push(`<button type="button" data-d="${k}" class="${k === td ? "today" : ""} ${k === CAL.sel ? "sel" : ""}">${num(d)}${ds.length ? `<i>${ds.map((x) => `<b style="--c:${COL[x]}"></b>`).join("")}</i>` : ""}</button>`); }
+    const wd = ["ح", "ن", "ث", "ر", "خ", "ج", "س"], title = first.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
+    const ev = (wk.events || []).filter((e) => e.day === CAL.sel || (e.kind === "program" && e.until && e.day <= CAL.sel && CAL.sel <= e.until)), timeOf = (e) => (e.starts_at ? tm(e.starts_at) : e.from ? tm2(e.from) : "");
+    const kk = (e) => (e.kind === "deadline" ? "task" : e.kind);
+    const grp = GROUPS.map(([k, n]) => [n, ev.filter((e) => kk(e) === k).sort((a, b) => (timeOf(a) || "99").localeCompare(timeOf(b) || "99"))]).filter(([, l]) => l.length);
+    host.innerHTML = `<div class="lb-cal"><div class="lb-p"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">›</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">‹</button></div><div class="lb-mg">${wd.map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div></div>
+      <div class="lb-p lb-ag"><h4><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))} · ${esc(fmt(CAL.sel))}</span><small>${num(ev.length)} حدثاً</small></h4>${grp.length ? grp.map(([n, l]) => `<div class="gh">${esc(n)}</div>${l.map((e) => `<button type="button" class="lb-agi ${esc(e.state || "")}" data-k="${ev.indexOf(e)}" style="--c:${COL[e.sys]}"><span class="tm">${esc(timeOf(e) || "طوال اليوم")}</span><span><b>${esc(e.title)}</b></span>${e.kind === "meeting" ? stB(e.state) : ""}<span class="mt">${chip(e.sys)}${e.place ? `<span>${esc(e.place)}</span>` : ""}${e.owner ? `<span>${esc(e.owner)}</span>` : ""}</span></button>`).join("")}`).join("") : `<div class="lb-nomt">${calSvg}<b>لا لقاءات أو فعاليات في هذا اليوم</b></div>`}</div></div>`;
+    const sh = (n) => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + n); CAL.mon = iso(d); calWidget(host); };
+    host.querySelector("#mP").onclick = () => sh(-1); host.querySelector("#mN").onclick = () => sh(1);
+    host.querySelectorAll(".lb-mg [data-d]").forEach((b) => (b.onclick = () => { CAL.sel = b.dataset.d; calWidget(host); }));
+    host.querySelectorAll(".lb-agi").forEach((b) => (b.onclick = () => detail(ev[+b.dataset.k])));
+  }
+
+  /* ----- نجوم قيمي: أفضل 10 بشريط متحرك ----- */
+  function topStrip(top, link) {
+    if (!top.length) return `<section class="lb-p"><h4>نجوم لبيد · قيمي</h4>${em("لا بيانات في لوحة الشرف.")}</section>`;
+    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]};--h2:${hue(x.name)[1]}"><span class="rk">${num(x.rank)}</span><span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")} · ${esc(x.section || "")}</small><em>${num(x.balance)} نقطة</em></a>`;
+    const set = top.map(one).join("");
+    return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب"><div class="dh"><h4>نجوم لبيد · قيمي</h4><span>أفضل ${num(top.length)} طلاب في لوحة الشرف</span></div><div class="vp"><div class="tr" style="animation-duration:${Math.max(30, top.length * 6)}s">${set}${set}</div></div></section>`;
+  }
+
   async function overview() {
-    const wkAgo = new Date(Date.now() - 7 * 864e5).toISOString();
-    const [d, tk, md, pl, wk, gr, nw, hn] = await Promise.all([rpc("lb_day", { p_day: null }), rpc("lb_ticker").catch(() => []), rpc("lb_media").catch(() => ({ people: [], badges: [], gallery: [] })), hero(), rpc("lb_week", { p_from: S.wk }), rpc("lb_growth").catch(() => null), rpc("lb_feed", { p_from: wkAgo, p_to: null, p_sys: "plans", p_kind: null, p_op: "new", p_ach: null, p_limit: 5, p_offset: 0 }).catch(() => ({ items: [], total: 0 })), rpc("lb_honor").catch(() => ({ top: [], badges: [] }))]);
-    people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
-    const ind = d.indicators || {}, plan = d.plans || {}, co = d.community || {}, q = d.qiyami || {}, at = d.attendance || {}, fa = d.facilities || {};
-    const givers = {}; (q.givers || []).forEach((g) => (givers[g.name] = g));
-    const faces = [...(md.people || []).map((p) => faceCard(p, givers[p.name])), ...(q.givers || []).filter((g) => !people[g.name] && g.name !== "مدير النواة الرقمية").map((g) => faceCard({ name: g.name, specialty: "معلم" }, g))];
-    const doms = ind.domains || [], totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
-    const top = (hn.top || []).filter((x) => x.rank <= 5), topMax = Math.max(1, ...top.map((x) => x.balance));
-    const badgeImg = {}; (md.badges || []).forEach((b) => (badgeImg[b.name] = b.image));
-    body.innerHTML = `
-      ${tk && tk.length ? `<div class="lb-tick" id="lbTick"><span class="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>حديث لبيد</span><div class="vp"><div class="tr">${[0, 1].map(() => tk.map((x) => `<a href="${esc(x.link || "#")}">${esc(x.text)}<em>${esc(x.tag)}</em></a>`).join("")).join("")}</div></div><button class="pb" id="lbPz" type="button" aria-label="إيقاف الحركة أو تشغيلها">II</button></div>` : ""}
-      <section class="lb-cal2 lb-p" id="lbCal" aria-label="تقويم الأسبوع"></section>
-      <div class="lb-sec"><h3>اليوم في المدرسة</h3><small>حجوزات المرافق وحضور الطلاب</small></div>
-      <div class="lb-g">
-        <div class="lb-p c8"><h4>حجوزات اليوم</h4><p class="sub">${fa.total_bookable ? `${num(fa.available_now)} مرافق متاحة الآن من ${num(fa.total_bookable)}` : "لا مرافق قابلة للحجز"}</p>${bookingsTL(fa)}<a class="more" href="/facility-booking/bookings.html">فتح الحجوزات</a></div>
-        <div class="lb-p dk c4" style="background:linear-gradient(160deg,#17414f,#0f2f3b)"><h4>حضور الطلاب اليوم</h4><p class="sub">مجاميع من الفصول المرصودة فقط</p>${at.recorded ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">${ring(at.present_pct, "الحضور", "حضور", "#f0b34a")}<div style="font-size:.88rem;line-height:2"><div>فصول مرصودة <b>${num(at.sections_recorded)}</b> من ${num(at.sections_total)}</div><div>غياب <b>${num(at.absent)}</b> (بعذر ${num(at.absent_excused)})</div><div>تأخر <b>${num(at.late)}</b></div></div></div>` : `<div class="lb-em" style="border-color:rgba(255,255,255,.25);color:#a9d4d9">لم يُرصد الحضور اليوم بعد.</div>`}<a class="more" href="/indibati/dashboard.html" style="display:block;margin-top:10px">فتح انضباطي</a></div>
-      </div>
-      <div class="lb-sec"><h3>النمو المهني والخطط</h3><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>
-      <div class="lb-g">
-        <div class="lb-p c5"><h4>النمو المهني للمعلمين</h4><p class="sub">${gr ? `${num(gr.plans)} خطة نمو من ${num(gr.teachers)} معلماً · هدف ${num(gr.target_hours)} ساعة` : "تعذر تحميل البيانات"}</p>${gr ? `<div class="lb-mini2"><div><b>${num(gr.records_30d)}</b><span>سجل جديد (30 يوماً)</span></div><div><b>${num(gr.approved_hours)}</b><span>ساعة معتمدة</span></div><div><b>${num(gr.pending_review)}</b><span>بانتظار المراجعة</span></div></div>${(gr.latest || []).length ? gr.latest.map((x) => `<div class="lb-it">${av(x.who, "community")}<div class="tx">${lnk(x.link, x.title)}<div class="mt"><span>${esc(x.who)}</span>${x.hours ? `<span>${num(x.hours)} ساعة</span>` : ""}</div></div></div>`).join("") : em("لم تُعتمد سجلات نمو بعد.", ["/teachers-community/#/growth", "فتح النمو المهني"])}` : ""}</div>
-        <div class="lb-p c4"><h4>الاحتياجات المهنية</h4><p class="sub">${gr ? `${num(gr.needs_open)} احتياجاً مفتوحاً حسب المجال` : ""}</p>${gr && (gr.needs || []).length ? (() => { const mx = Math.max(...gr.needs.map((n) => n.n)); return gr.needs.map((n, i) => `<div class="lb-row"><span>${esc(n.domain)}</span><b>${num(n.n)}${n.high ? ` · ${n.high} عالٍ` : ""}</b></div><div class="lb-bar"><i style="width:${(n.n / mx) * 100}%;animation-delay:${i * .08}s;background:linear-gradient(90deg,#7a4bb5,#b99ae0)"></i></div>`).join(""); })() : em("لا احتياجات مسجلة.")}</div>
-        <div class="lb-p c3"><h4>جديد الخطط</h4><p class="sub">${num(nw.total)} إضافة خلال 7 أيام</p>${(nw.items || []).length ? nw.items.map((x) => `<div class="lb-it"><div class="tx">${lnk(x.link, String(x.title).replace(/^إضافة برنامج: /, ""))}<div class="mt"><span>${dt(x.at)}</span></div></div></div>`).join("") : em("لا إضافات جديدة.")}</div>
-      </div>
-      <div class="lb-sec"><h3>نبض المدرسة</h3><small>من سجل التحديثات الموحد</small></div>
-      <div class="lb-g">
-        <div class="lb-p c7"><h4>نبض الأنظمة خلال 14 يوماً</h4><p class="sub">عدد السجلات الجديدة والمعدلة كل يوم</p>${areaChart(pl.days)}</div>
-        <div class="lb-p c5"><h4>من يصنع الحركة؟</h4><p class="sub">توزيع النشاط على الأنظمة</p>${donut(pl.by_sys)}</div>
-        <div class="lb-p c12"><h4>مؤشرات المدرسة ${ind.cycle ? "· " + esc(ind.cycle) : ""}</h4><p class="sub">${ind.has_cycle ? `${num(ind.approved)} معتمد من ${num(ind.total)} · تغيّر ${num(ind.changed_7d)} خلال 7 أيام` : "لا توجد دورة تقويم نشطة"}</p><div class="lb-doms">${doms.map((x, i) => `<div><div class="lb-row"><span>${esc(x.name)}</span><b>${x.approved}/${x.total}</b></div><div class="lb-bar"><i style="width:${Math.max(x.pct || 0, x.evaluated ? 3 : 0)}%;animation-delay:${i * .12}s"></i></div><div style="font-size:.74rem;color:#6a8696;margin-top:2px">آخر تحديث: ${x.last_update ? dt(x.last_update) : "لم يحدث بعد"}</div></div>`).join("")}</div></div>
-      </div>
-      <div class="lb-sec"><h3>وجوه تصنع الحركة</h3><small>الصور المنشورة فقط</small></div>
-      ${faces.length ? `<div class="lb-faces">${faces.join("")}</div>` : em("لا معلمون منشورون بعد.")}
-      <div class="lb-sec"><h3>لقطات من أنشطة المدرسة</h3><small>من الخطط الذكية ومجتمع لبيد المهني</small></div>
-      <div class="lb-shots">${(md.gallery || []).length ? `<div class="lb-gal">${md.gallery.map((g) => `<a href="${esc(g.link)}"><img loading="lazy" alt="نشاط مدرسي" src="${esc(pub("sp-evidence", g.path))}"></a>`).join("")}</div>` : `<div class="lb-nomt" style="padding:22px 10px"><span style="color:var(--brand)">${camSvg}</span><b>لا توجد لقطات منشورة بعد</b><span>تظهر هنا صور الأنشطة فور رفعها كشواهد في <a href="/smart-plans/" style="color:var(--brand2);font-weight:700">الخطط الذكية</a> أو <a href="/teachers-community/" style="color:var(--brand2);font-weight:700">مجتمع لبيد المهني</a>.</span></div>`}</div>
-      <div class="lb-sec"><h3>المنجزات</h3><a href="${esc(hn.link || "#")}">لوحة الشرف</a></div>
-      <div class="lb-stars"><div class="hd2"><b>نجوم لبيد</b><span>أفضل 5 طلاب في لوحة الشرف</span></div>${top.length ? `<div class="lb-top5">${top.map((x, i) => `<a class="st5 r${x.rank}" href="${esc(hn.link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${x.rank}</span><span class="ph2">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")} · ${esc(x.section || "")}</small><div class="lb-bar"><i style="width:${(x.balance / topMax) * 100}%;animation-delay:${i * .1}s;background:linear-gradient(90deg,#f0b34a,#f6d58e)"></i></div><em>${num(x.balance)} نقطة</em></a>`).join("")}</div>` : em("لا بيانات في لوحة الشرف.")}</div>
-      <div class="lb-stars" style="margin-top:14px"><div class="hd2"><b>آخر الأوسمة الممنوحة</b><span>${num(q.week && q.week.badges)} وساماً هذا الأسبوع</span></div>${(hn.badges || []).length ? `<div class="lb-bdg">${hn.badges.map((x) => `<article class="bd2"><div class="im">${x.image ? `<img loading="lazy" alt="" src="${esc(pub("qm-badges", x.image))}">` : `<span>${esc(mono(x.badge))}</span>`}</div><b>${esc(x.badge)}</b><div class="who">${esc(x.student)}</div><small>منحه ${esc(x.by || "—")}</small><small>${REL(x.at)}</small></article>`).join("")}</div>` : em("لم تُمنح أوسمة بعد.")}</div>
-      <div class="lb-sec"><h3>نشاط الأنظمة</h3><small>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته</small></div>
+    const [d, pl, docs, top, hn] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ link: "#" }))]);
+    const ind = d.indicators || {}, at = d.attendance || {}, fa = d.facilities || {}, doms = ind.domains || [], totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
+    const pct = (v) => (v == null ? "—" : num(v) + "%");
+    body.innerHTML = `${docsStrip(docs || [])}
+      <section id="lbCal" aria-label="التقويم واللقاءات"></section>
+      <section class="lb-p dk lb-dis" style="margin-top:16px"><div class="dh"><h4>بطاقة الانضباط اليوم</h4><a class="more" href="/indibati/dashboard.html">فتح انضباطي</a></div>${at.recorded ? `<div class="ds"><div class="rg">${ring(at.present_pct, "الحضور", "حضور", "#f0b34a")}</div><div class="ks"><div><b>${num(at.present)}</b><span>الطلاب الحضور</span></div><div><b>${pct(at.present_pct)}</b><span>نسبة الحضور</span></div><div><b>${pct(at.absent_pct)}</b><span>نسبة الغياب</span></div><div><b>${num(at.absent)}</b><span>الغائبون (بعذر ${num(at.absent_excused)})</span></div><div><b>${num(at.late)}</b><span>المتأخرون</span></div><div><b>${num(at.sections_recorded)}/${num(at.sections_total)}</b><span>فصول مرصودة</span></div></div></div>` : `<div class="lb-em" style="border-color:rgba(255,255,255,.25);color:#a9d4d9">لم يُرصد الحضور اليوم بعد.</div>`}</section>
+      <div style="margin-top:16px">${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}</div>
+      <section class="lb-p" style="margin-top:16px"><h4>حجوزات اليوم</h4><p class="sub">${fa.total_bookable ? `${num(fa.available_now)} مرافق متاحة الآن من ${num(fa.total_bookable)}` : "لا مرافق قابلة للحجز"}</p>${bookingsTL(fa)}<a class="more" href="/facility-booking/bookings.html">فتح الحجوزات</a></section>
+      <section class="lb-p" style="margin-top:16px"><h4>مؤشرات المدرسة ${ind.cycle ? "· " + esc(ind.cycle) : ""}</h4><p class="sub">${ind.has_cycle ? `اكتمال المجالات: ${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً` : "لا توجد دورة تقويم نشطة"}</p><div class="lb-doms">${doms.map((x, i) => `<div><div class="lb-row"><span>${esc(x.name)}</span><b>${x.approved}/${x.total}${x.total ? " · " + num(Math.round((100 * x.approved) / x.total)) + "%" : ""}</b></div><div class="lb-bar"><i style="width:${x.total ? Math.max((100 * x.approved) / x.total, x.evaluated ? 3 : 0) : 0}%;animation-delay:${i * .12}s"></i></div></div>`).join("")}</div></section>
+      <div class="lb-sec"><h3>حالة الأنظمة</h3><small>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته</small></div>
       <div class="lb-srcg">${Object.keys(SYS).map((k) => { const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, cls = age < 2 ? "" : age < 7 ? "mid" : "old", n = pl.by_sys[k] || 0; return `<a class="lb-sc ${cls}" style="--c:${COL[k]};text-decoration:none;color:inherit" href="${k === "core" ? "/digital-core/dashboard.html" : k === "saas" ? "/self-evaluation/admin.html" : k === "plans" ? "/smart-plans/" : k === "community" ? "/teachers-community/" : k === "indibati" ? "/indibati/dashboard.html" : k === "qiyami" ? "/qiyami/leaderboard.html" : "/facility-booking/bookings.html"}"><div class="ic">${esc(SYS[k][0])}</div><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً في 14 يوماً</small><div class="lb-bar" style="height:6px;margin-top:8px"><i style="width:${Math.max((n / totAct) * 100, n ? 4 : 0)}%;background:${COL[k]}"></i></div><div class="fr"><i></i>${age < 2 ? "نشط" : age < 7 ? "هادئ" : "ساكن"} · ${REL(v)}</div></a>`; }).join("")}</div>`;
-    const pz = body.querySelector("#lbPz"); if (pz) pz.onclick = () => body.querySelector("#lbTick").classList.toggle("pz");
-    calendar(body.querySelector("#lbCal"), wk);
+    body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
+    await calWidget(body.querySelector("#lbCal"));
   }
 
   /* ---------- سجل التحديثات ---------- */
