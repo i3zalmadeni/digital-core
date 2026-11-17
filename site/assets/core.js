@@ -114,7 +114,7 @@ async function boot(page, render, o = {}) {
   if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
-  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n) : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>

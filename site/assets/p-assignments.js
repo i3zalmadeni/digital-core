@@ -35,7 +35,7 @@ boot("assignments.html", async (m, c) => {
     return !q || [a.assignment_no, a.title, nm(a.staff_id), nm(v?.supervisor_id)].join(" ").includes(q); });
   function paint() {
     const L = pick();
-    m.innerHTML = head("التكليفات", "إدارة التكليفات الأساسية والفرعية وتوثيق اطلاع الموظف وإقراره ومتابعة التنفيذ.") +
+    m.innerHTML = head(c.staffOnly ? "تكليفاتي" : "التكليفات", "إدارة التكليفات الأساسية والفرعية وتوثيق اطلاع الموظف وإقراره ومتابعة التنفيذ.") +
       `<div class="acts noprint">${mgr ? `<a class="btn" href="assignment.html?new=1">تكليف جديد</a><button class="btn sec" id="ti" type="button">مسميات التكليفات الفرعية</button>` : ""}<button class="btn sec" id="ex" type="button">تصدير Excel</button></div>
        <div class="tabs mt" role="tablist">${TABS.map(([k, n]) => `<button type="button" data-t="${k}" class="${tab === k ? "on" : ""}">${n}${["all", "pending", "active", "closed", "draft"].includes(k) ? ` (${A.filter((a) => k === "all" || ASG.state(a)[2] === k).length})` : ""}</button>`).join("")}</div>
        <div class="card mt"><div class="fg"><div><label for="sq">بحث</label><input id="sq" value="${esc(q)}" placeholder="الرقم أو المسمى أو الموظف أو المتابع"></div>
