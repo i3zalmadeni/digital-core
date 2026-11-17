@@ -135,14 +135,20 @@ async function lbeedPage(m) {
       <div class="lb-leg" style="margin-top:10px"><span><i style="background:#0f8a94"></i>قادم</span><span><i style="background:#24895a"></i>جارٍ الآن</span><span><i style="background:#9db4bc"></i>انتهى</span><span><i style="background:#f0b34a"></i>بانتظار الاعتماد</span></div>`;
   }
 
+  /* ----- أيقونات ----- */
+  const I = { meeting: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5M16 5.2a3.2 3.2 0 010 5.6M18 14.6c1.6.6 2.7 2.1 3 4.4"/>', program: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>', booking: '<path d="M4 21V5a2 2 0 012-2h8a2 2 0 012 2v16M16 9h2a2 2 0 012 2v10M2 21h20M8 7h4M8 11h4M8 15h4"/>', task: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>', calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', shield: '<path d="M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>', star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>', pin: '<path d="M12 21s7-6.2 7-11.5A7 7 0 005 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>', user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/>', chev: '<path d="M6 9l6 6 6-6"/>', up: '<path d="M7 17L17 7M9 7h8v8"/>' };
+  const ic = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k] || I.calendar}</svg>`;
+  const KI = { meeting: "meeting", program: "program", booking: "booking", task: "task", deadline: "task", calendar: "calendar" };
+
   /* ----- توثيقات الخطط (شريط الصور) ----- */
   let DOCS = [];
   function docsStrip(items) {
     DOCS = items;
-    if (!items.length) return `<section class="lb-p lb-docs"><div class="dh"><h4>آخر التوثيقات</h4><span>من الخطط الذكية</span></div>${em("لا توثيقات بصور بعد. تظهر هنا فور توثيق أي برنامج.", ["/smart-plans/", "فتح الخطط الذكية"])}</section>`;
-    const one = (x, i) => `<button type="button" class="dc" data-i="${i}"><span class="im"><img loading="lazy" alt="" src="${esc(pub("sp-evidence", x.images[0]))}">${x.images.length > 1 ? `<i>${num(x.images.length)} صور</i>` : ""}</span><span class="tx"><b>${esc(x.title)}</b><small>${esc(x.executor || "—")}${x.date ? " · " + esc(fmt(x.date)) : ""}</small></span></button>`;
+    const head = `<div class="dh"><div><h4>آخر التوثيقات</h4><p>ما نُفِّذ ووُثِّق في الخطط الذكية، اضغط على أي بطاقة لقراءة الخبر كاملاً</p></div><a href="/smart-plans/">كل التوثيقات</a></div>`;
+    if (!items.length) return `<section class="lb-p lb-docs">${head}${em("لا توجد توثيقات بصور بعد. تظهر هنا فور توثيق أي برنامج.", ["/smart-plans/", "فتح الخطط الذكية"])}</section>`;
+    const one = (x, i) => `<button type="button" class="dc" data-i="${i}"><span class="im"><img loading="lazy" alt="" src="${esc(pub("sp-evidence", x.images[0]))}">${x.images.length > 1 ? `<i>${num(x.images.length)} صور</i>` : ""}<span class="dov"><b>${esc(x.title)}</b></span></span><span class="by"><span class="lb-av" style="--c:${hue(x.executor || "؟")[0]}">${esc(mono(x.executor))}</span><span><b>${esc(x.executor || "—")}</b><small>${x.date ? esc(fmt(x.date)) : esc(dt(x.at))}</small></span></span></button>`;
     const set = items.map(one).join("");
-    return `<section class="lb-p lb-docs" aria-label="آخر التوثيقات"><div class="dh"><h4>آخر التوثيقات</h4><span>من الخطط الذكية · اضغط للخبر كاملاً</span></div><div class="vp"><div class="tr" style="animation-duration:${Math.max(30, items.length * 7)}s">${set}${items.length > 3 ? set : ""}</div></div></section>`;
+    return `<section class="lb-p lb-docs" aria-label="آخر التوثيقات">${head}<div class="vp"><div class="tr" style="animation-duration:${Math.max(36, items.length * 8)}s">${set}${items.length > 3 ? set : ""}</div></div></section>`;
   }
   function docDlg(x) {
     let dlg = m.querySelector("#lbDlg"); if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "lbDlg"; dlg.className = "lb-dlg"; m.querySelector(".lb").appendChild(dlg); dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); }); }
@@ -152,50 +158,100 @@ async function lbeedPage(m) {
     dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
   }
 
-  /* ----- التقويم + لقاءات اليوم ----- */
-  const CAL = { mon: null, sel: null }; const wkCache = {};
+  /* ----- التقويم التفاعلي + خط اليوم الزمني ----- */
+  const CAL = { mon: null, sel: null, kf: "all", open: null }; let MC = {}, WC = {};
   const ws0 = (s) => addDays(s, -new Date(s + "T12:00:00").getDay());
-  const GROUPS = [["meeting", "الاجتماعات واللقاءات"], ["program", "البرامج والأنشطة"], ["booking", "حجوزات المرافق"], ["task", "المهام والمواعيد"], ["calendar", "التقويم المدرسي"]];
-  async function calWidget(host) {
-    const td = iso(nowRy()); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01";
-    const [mo, wk] = await Promise.all([rpc("lb_month", { p_month: CAL.mon }), (async () => { const k = ws0(CAL.sel); return rpc("lb_week", { p_from: k }); })()]);
-    const dots = {}; (mo.events || []).forEach((e) => ((dots[e.day] = dots[e.day] || new Set()).add(e.sys)));
+  const KF = [["all", "الكل"], ["meeting", "اجتماعات ولقاءات"], ["program", "برامج"], ["booking", "حجوزات"], ["task", "مهام ومواعيد"], ["calendar", "تقويم المدرسة"]];
+  const kk = (e) => (e.kind === "deadline" ? "task" : e.kind);
+  const minsOf = (e) => { if (e.starts_at) { const d = new Date(new Date(e.starts_at).toLocaleString("en-US", { timeZone: "Asia/Riyadh" })); return d.getHours() * 60 + d.getMinutes(); } if (e.from) { const [h, mi] = String(e.from).split(":"); return +h * 60 + +mi; } return null; };
+  const dayEv = (k) => { const w = WC[ws0(k)]; return w ? (w.events || []).filter((e) => e.day === k || (e.kind === "program" && e.until && e.day <= k && k <= e.until)) : []; };
+  async function ensure() { const wk = ws0(CAL.sel); await Promise.all([MC[CAL.mon] ? 0 : rpc("lb_month", { p_month: CAL.mon }).then((r) => (MC[CAL.mon] = r)), WC[wk] ? 0 : rpc("lb_week", { p_from: wk }).then((r) => (WC[wk] = r))]); }
+  function evRows(e) { const when = e.starts_at ? `${fmt(e.day)} · ${tm(e.starts_at)}` : e.from ? `${fmt(e.day)} · ${tm2(e.from)} – ${tm2(e.to)}` : e.until && e.until !== e.day ? `من ${fmt(e.day)} إلى ${fmt(e.until)}` : fmt(e.day);
+    return [["الموعد", `${dayName(e.day)} ${when}`], ["النظام", SYS[e.sys]], ["الفريق أو الجهة", e.team], ["المكان", e.place || e.location], ["المسؤول", e.owner], ["الفئة المستفيدة", e.beneficiary], ["التوثيق", e.kind === "meeting" && e.doc ? (DOC[e.doc] || [""])[0] : null]].filter((r) => r[1]); }
+  function setSel(host, k) { CAL.sel = k; CAL.open = null; if (k.slice(0, 7) !== CAL.mon.slice(0, 7)) CAL.mon = k.slice(0, 8) + "01"; paint(host, true); }
+  async function paint(host, anim) {
+    host.classList.add("ld"); try { await ensure(); } catch (e) { host.classList.remove("ld"); return; } host.classList.remove("ld");
+    const td = iso(nowRy()), all = dayEv(CAL.sel), cnt = {}; all.forEach((e) => (cnt[kk(e)] = (cnt[kk(e)] || 0) + 1));
+    if (CAL.kf !== "all" && !cnt[CAL.kf]) CAL.kf = "all";
+    const ev = all.filter((e) => CAL.kf === "all" || kk(e) === CAL.kf).sort((a, b) => (minsOf(a) ?? -1) - (minsOf(b) ?? -1));
+    const dots = {}; ((MC[CAL.mon] || {}).events || []).forEach((e) => { const o = (dots[e.day] = dots[e.day] || { n: 0, s: new Set() }); o.n++; o.s.add(e.sys); });
     const first = new Date(CAL.mon + "T12:00:00"), pad = first.getDay(), dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     const cells = []; for (let i = 0; i < pad; i++) cells.push(`<span></span>`);
-    for (let d = 1; d <= dim; d++) { const k = CAL.mon.slice(0, 8) + String(d).padStart(2, "0"), ds = [...(dots[k] || [])].slice(0, 3); cells.push(`<button type="button" data-d="${k}" class="${k === td ? "today" : ""} ${k === CAL.sel ? "sel" : ""}">${num(d)}${ds.length ? `<i>${ds.map((x) => `<b style="--c:${COL[x]}"></b>`).join("")}</i>` : ""}</button>`); }
-    const wd = ["ح", "ن", "ث", "ر", "خ", "ج", "س"], title = first.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
-    const ev = (wk.events || []).filter((e) => e.day === CAL.sel || (e.kind === "program" && e.until && e.day <= CAL.sel && CAL.sel <= e.until)), timeOf = (e) => (e.starts_at ? tm(e.starts_at) : e.from ? tm2(e.from) : "");
-    const kk = (e) => (e.kind === "deadline" ? "task" : e.kind);
-    const grp = GROUPS.map(([k, n]) => [n, ev.filter((e) => kk(e) === k).sort((a, b) => (timeOf(a) || "99").localeCompare(timeOf(b) || "99"))]).filter(([, l]) => l.length);
-    host.innerHTML = `<div class="lb-cal"><div class="lb-p"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">›</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">‹</button></div><div class="lb-mg">${wd.map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div></div>
-      <div class="lb-p lb-ag"><h4><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))} · ${esc(fmt(CAL.sel))}</span><small>${num(ev.length)} حدثاً</small></h4>${grp.length ? grp.map(([n, l]) => `<div class="gh">${esc(n)}</div>${l.map((e) => `<button type="button" class="lb-agi ${esc(e.state || "")}" data-k="${ev.indexOf(e)}" style="--c:${COL[e.sys]}"><span class="tm">${esc(timeOf(e) || "طوال اليوم")}</span><span><b>${esc(e.title)}</b></span>${e.kind === "meeting" ? stB(e.state) : ""}<span class="mt">${chip(e.sys)}${e.place ? `<span>${esc(e.place)}</span>` : ""}${e.owner ? `<span>${esc(e.owner)}</span>` : ""}</span></button>`).join("")}`).join("") : `<div class="lb-nomt">${calSvg}<b>لا لقاءات أو فعاليات في هذا اليوم</b></div>`}</div></div>`;
-    const sh = (n) => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + n); CAL.mon = iso(d); calWidget(host); };
-    host.querySelector("#mP").onclick = () => sh(-1); host.querySelector("#mN").onclick = () => sh(1);
-    host.querySelectorAll(".lb-mg [data-d]").forEach((b) => (b.onclick = () => { CAL.sel = b.dataset.d; calWidget(host); }));
-    host.querySelectorAll(".lb-agi").forEach((b) => (b.onclick = () => detail(ev[+b.dataset.k])));
+    for (let d = 1; d <= dim; d++) { const k = CAL.mon.slice(0, 8) + String(d).padStart(2, "0"), o = dots[k], dw = new Date(k + "T12:00:00").getDay(); cells.push(`<button type="button" data-d="${k}" style="--h:${o ? Math.min(o.n, 6) / 6 : 0}" class="${k === td ? "today" : ""} ${k === CAL.sel ? "sel" : ""} ${dw >= 5 ? "we" : ""}" aria-label="${esc(dayName(k))} ${d}${o ? "، " + o.n + " أحداث" : ""}" ${k === CAL.sel ? 'aria-current="date"' : ""}><b>${num(d)}</b>${o ? `<i>${[...o.s].slice(0, 3).map((x) => `<u style="--c:${COL[x]}"></u>`).join("")}</i>` : ""}</button>`); }
+    const wd = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"], title = first.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
+    const wk0 = ws0(CAL.sel), strip = Array.from({ length: 7 }, (_, i) => addDays(wk0, i)).map((k) => { const n = dayEv(k).length; return `<button type="button" data-d="${k}" class="${k === CAL.sel ? "sel" : ""} ${k === td ? "today" : ""}"><span>${wd[new Date(k + "T12:00:00").getDay()]}</span><b>${num(new Date(k + "T12:00:00").getDate())}</b><i>${n ? num(n) : ""}</i></button>`; }).join("");
+    const nowM = (() => { const n = nowRy(); return n.getHours() * 60 + n.getMinutes(); })(); let nowDone = CAL.sel !== td;
+    const line = (e, i) => { const st = minsOf(e), mm = st == null ? "" : tm2(`${String(Math.floor(st / 60)).padStart(2, "0")}:${String(st % 60).padStart(2, "0")}`), open = CAL.open === i, rows = evRows(e), done = e.state === "ended" || (CAL.sel === td && st != null && e.kind !== "program" && !e.cont && (e.state == null) && false);
+      let mark = ""; if (!nowDone && st != null && st > nowM) { nowDone = true; mark = `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>`; }
+      return `${mark}<div class="ev ${esc(e.state || "")} ${open ? "open" : ""}" style="--c:${COL[e.sys]};--i:${i}"><div class="tc">${st == null ? `<b>طوال اليوم</b>` : `<b>${esc(mm)}</b>${e.to || e.ends_at ? `<small>${esc(e.to ? tm2(e.to) : tm(e.ends_at))}</small>` : ""}`}</div><div class="rl"><i></i></div>
+        <article class="ec"><button type="button" class="eh" data-k="${i}" aria-expanded="${open}"><span class="ico">${ic(KI[e.kind])}</span><span class="tt"><b>${esc(e.title)}</b><small>${esc(TYPE[e.kind] || e.kind)}${e.place || e.location ? " · " + esc(e.place || e.location) : ""}${e.owner ? " · " + esc(e.owner) : ""}</small></span>${e.kind === "meeting" ? stB(e.state) : ""}<span class="chv">${ic("chev")}</span></button>
+        <div class="eb"><div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><a class="go" href="${esc(e.link || "#")}">فتح في ${esc(SYS[e.sys])} ${ic("up")}</a></div></div></article></div>`; };
+    const tl = ev.map(line).join("") + (!nowDone && ev.length ? `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>` : "");
+    host.innerHTML = `<div class="lb-cal"><div class="lb-p lb-mcal"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">${ic("chev")}</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">${ic("chev")}</button></div>
+        <div class="lb-mg">${["ح", "ن", "ث", "ر", "خ", "ج", "س"].map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div><button type="button" class="tdb" id="mT">العودة إلى اليوم</button>
+        <div class="lg">${Object.keys(SYS).filter((k) => ["community", "saas", "plans", "booking"].includes(k)).map((k) => `<span><u style="--c:${COL[k]}"></u>${esc(SYS[k])}</span>`).join("")}</div></div>
+      <div class="lb-p lb-ag ${anim ? "an" : ""}"><div class="agh"><div class="big"><b>${num(new Date(CAL.sel + "T12:00:00").getDate())}</b><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))}</span></div><div class="meta"><h4>${esc(dayName(CAL.sel))}</h4><p>${esc(hijri(new Date(CAL.sel + "T12:00:00")))}</p></div><div class="cn"><b>${num(all.length)}</b><span>حدثاً</span></div></div>
+        <div class="wks" role="group" aria-label="أيام الأسبوع"><button type="button" id="wP" aria-label="الأسبوع السابق">${ic("chev")}</button>${strip}<button type="button" id="wN" aria-label="الأسبوع التالي">${ic("chev")}</button></div>
+        <div class="lb-fc" role="group" aria-label="تصفية الأحداث">${KF.filter(([k]) => k === "all" || cnt[k]).map(([k, n]) => `<button type="button" data-k="${k}" class="${CAL.kf === k ? "on" : ""}">${n}<b>${num(k === "all" ? all.length : cnt[k])}</b></button>`).join("")}</div>
+        <div class="tl">${tl || `<div class="lb-nomt">${calSvg}<b>${all.length ? "لا أحداث من هذا النوع" : "يوم هادئ، لا لقاءات أو فعاليات مجدولة"}</b><span>ما يُجدول في أي نظام من أنظمة المدرسة يظهر هنا فوراً.</span></div>`}</div></div></div>`;
+    host.querySelectorAll(".lb-mg [data-d],.wks [data-d]").forEach((b) => (b.onclick = () => setSel(host, b.dataset.d)));
+    host.querySelector("#mP").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() - 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
+    host.querySelector("#mN").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
+    host.querySelector("#mT").onclick = () => { CAL.mon = td.slice(0, 8) + "01"; setSel(host, td); };
+    host.querySelector("#wP").onclick = () => setSel(host, addDays(CAL.sel, -7)); host.querySelector("#wN").onclick = () => setSel(host, addDays(CAL.sel, 7));
+    host.querySelectorAll(".lb-fc button").forEach((b) => (b.onclick = () => { CAL.kf = b.dataset.k; CAL.open = null; paint(host, true); }));
+    host.querySelectorAll(".eh").forEach((b) => (b.onclick = () => { const i = +b.dataset.k, was = CAL.open === i; CAL.open = was ? null : i; host.querySelectorAll(".ev").forEach((x, n) => { const o = x.querySelector(".eh"); const on = !was && +o.dataset.k === i; x.classList.toggle("open", on); o.setAttribute("aria-expanded", on); }); }));
+  }
+  function calWidget(host) { const td = iso(nowRy()); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01"; MC = {}; WC = {}; return paint(host, false); }
+
+  /* ----- بطاقة الانضباط ----- */
+  function disCard(at) {
+    const head = `<div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>الانضباط اليوم</h4><p>رصد الحضور والغياب من نظام انضباطي</p></div><a href="/indibati/dashboard.html">فتح انضباطي</a></div>`;
+    if (!at.recorded) return `<section class="lb-p lb-dis">${head}${em("لم يُرصد الحضور اليوم بعد. تظهر النسب هنا فور رصد أول فصل.")}</section>`;
+    const P = Math.round(at.present_pct || 0), A = Math.round(at.absent_pct || 0), R = 15.9155, ex = at.absent_excused || 0, un = at.absent_unexcused || 0, tot = Math.max(1, at.students_in_recorded || 1);
+    const cov = at.sections_total ? Math.round((100 * at.sections_recorded) / at.sections_total) : 0;
+    return `<section class="lb-p lb-dis">${head}<div class="ds"><div class="rg" role="img" aria-label="الحضور ${P}% والغياب ${A}%"><svg viewBox="0 0 42 42"><circle class="tk" cx="21" cy="21" r="${R}"/><circle class="pr" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${P}"/><circle class="ab" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${A};--o:${-P}"/></svg><div class="ct"><b class="cu" data-cu="${P}" data-sfx="%">0</b><span>نسبة الحضور</span></div></div>
+      <div class="ks"><div class="k g"><b class="cu" data-cu="${at.present || 0}">0</b><span>الطلاب الحضور</span><small>من ${num(at.students_in_recorded)} طالباً في الفصول المرصودة</small></div>
+      <div class="k r"><b class="cu" data-cu="${A}" data-sfx="%">0</b><span>نسبة الغياب</span><small>${num(at.absent)} غائباً · ${num(ex)} بعذر · ${num(un)} بدون عذر</small></div>
+      <div class="k y"><b class="cu" data-cu="${at.late || 0}">0</b><span>المتأخرون</span><small>سجلات التأخر اليوم</small></div>
+      <div class="k b"><b class="cu" data-cu="${cov}" data-sfx="%">0</b><span>تغطية الرصد</span><small>${num(at.sections_recorded)} من ${num(at.sections_total)} فصلاً</small></div></div></div>
+      <div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#24895a"></i>حاضر</span><span><i style="background:#f0b34a"></i>غائب بعذر</span><span><i style="background:#e0644f"></i>غائب بدون عذر</span></div></section>`;
   }
 
   /* ----- نجوم قيمي: أفضل 10 بشريط متحرك ----- */
   function topStrip(top, link) {
-    if (!top.length) return `<section class="lb-p"><h4>نجوم لبيد · قيمي</h4>${em("لا بيانات في لوحة الشرف.")}</section>`;
-    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]};--h2:${hue(x.name)[1]}"><span class="rk">${num(x.rank)}</span><span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")} · ${esc(x.section || "")}</small><em>${num(x.balance)} نقطة</em></a>`;
+    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>نجوم لبيد · قيمي</h4><p>أفضل ${num(top.length)} طلاب في لوحة الشرف حسب النقاط</p></div><a href="${esc(link)}">لوحة الشرف</a></div>`;
+    if (!top.length) return `<section class="lb-p lb-top">${head}${em("لا بيانات في لوحة الشرف بعد.")}</section>`;
+    const mx = Math.max(1, ...top.map((x) => x.balance));
+    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(x.rank)}</span>${x.rank === 1 ? `<span class="cr">${ic("crown")}</span>` : ""}<span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pt"><i style="width:${(100 * x.balance) / mx}%"></i></span><em>${num(x.balance)} نقطة</em></a>`;
     const set = top.map(one).join("");
-    return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب"><div class="dh"><h4>نجوم لبيد · قيمي</h4><span>أفضل ${num(top.length)} طلاب في لوحة الشرف</span></div><div class="vp"><div class="tr" style="animation-duration:${Math.max(30, top.length * 6)}s">${set}${set}</div></div></section>`;
+    return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب">${head}<div class="vp"><div class="tr" style="animation-duration:${Math.max(40, top.length * 7)}s">${set}${set}</div></div></section>`;
+  }
+
+  /* ----- مؤشرات المدرسة: خارطة اكتمال المجالات ----- */
+  function indCard(ind) {
+    const doms = ind.domains || [], PAL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f"], ov = ind.total ? Math.round((100 * ind.approved) / ind.total) : 0;
+    const head = `<div class="dh"><span class="ico b">${ic("task")}</span><div><h4>مؤشرات المدرسة${ind.cycle ? " · " + esc(ind.cycle) : ""}</h4><p>${ind.has_cycle ? `اكتمال كل مجال بحسب المؤشرات المعتمدة · تغيّر ${num(ind.changed_7d)} خلال 7 أيام` : "لا توجد دورة تقويم نشطة"}</p></div><a href="/self-evaluation/admin.html">فتح التقويم الذاتي</a></div>`;
+    if (!doms.length) return `<section class="lb-p lb-ind">${head}${em("لا مجالات للعرض.")}</section>`;
+    const ring = (p, c, sz) => `<svg viewBox="0 0 42 42" width="${sz}" height="${sz}" aria-hidden="true"><circle class="tk" cx="21" cy="21" r="15.9155"/><circle class="pr" cx="21" cy="21" r="15.9155" pathLength="100" style="--p:${p};stroke:${c}"/></svg>`;
+    return `<section class="lb-p lb-ind">${head}<div class="ig"><div class="ovr"><div class="rg">${ring(ov, "#0f8a94", 150)}<div class="ct"><b class="cu" data-cu="${ov}" data-sfx="%">0</b><span>اكتمال المدرسة</span></div></div><small>${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً</small></div>
+      <div class="dm">${doms.map((x, i) => { const p = x.total ? Math.round((100 * x.approved) / x.total) : 0, c = PAL[i % PAL.length]; return `<a class="d" href="/self-evaluation/admin.html" style="--c:${c}"><span class="rg">${ring(p, c, 68)}<b>${num(p)}%</b></span><span class="tx"><b>${esc(x.name)}</b><small>${num(x.total)} مؤشرات · ${num(x.approved)} معتمد · ${num(x.evaluated)} مقيَّم</small><small>${x.last_update ? "آخر تحديث " + dt(x.last_update) : "لم يُحدَّث بعد"}</small></span></a>`; }).join("")}</div></div></section>`;
   }
 
   async function overview() {
     const [d, pl, docs, top, hn] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ link: "#" }))]);
-    const ind = d.indicators || {}, at = d.attendance || {}, fa = d.facilities || {}, doms = ind.domains || [], totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
-    const pct = (v) => (v == null ? "—" : num(v) + "%");
+    const ind = d.indicators || {}, at = d.attendance || {}, fa = d.facilities || {}, totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1, bk = fa.bookings || [], pend = bk.filter((x) => x.status === "pending").length;
     body.innerHTML = `${docsStrip(docs || [])}
-      <section id="lbCal" aria-label="التقويم واللقاءات"></section>
-      <section class="lb-p dk lb-dis" style="margin-top:16px"><div class="dh"><h4>بطاقة الانضباط اليوم</h4><a class="more" href="/indibati/dashboard.html">فتح انضباطي</a></div>${at.recorded ? `<div class="ds"><div class="rg">${ring(at.present_pct, "الحضور", "حضور", "#f0b34a")}</div><div class="ks"><div><b>${num(at.present)}</b><span>الطلاب الحضور</span></div><div><b>${pct(at.present_pct)}</b><span>نسبة الحضور</span></div><div><b>${pct(at.absent_pct)}</b><span>نسبة الغياب</span></div><div><b>${num(at.absent)}</b><span>الغائبون (بعذر ${num(at.absent_excused)})</span></div><div><b>${num(at.late)}</b><span>المتأخرون</span></div><div><b>${num(at.sections_recorded)}/${num(at.sections_total)}</b><span>فصول مرصودة</span></div></div></div>` : `<div class="lb-em" style="border-color:rgba(255,255,255,.25);color:#a9d4d9">لم يُرصد الحضور اليوم بعد.</div>`}</section>
-      <div style="margin-top:16px">${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}</div>
-      <section class="lb-p" style="margin-top:16px"><h4>حجوزات اليوم</h4><p class="sub">${fa.total_bookable ? `${num(fa.available_now)} مرافق متاحة الآن من ${num(fa.total_bookable)}` : "لا مرافق قابلة للحجز"}</p>${bookingsTL(fa)}<a class="more" href="/facility-booking/bookings.html">فتح الحجوزات</a></section>
-      <section class="lb-p" style="margin-top:16px"><h4>مؤشرات المدرسة ${ind.cycle ? "· " + esc(ind.cycle) : ""}</h4><p class="sub">${ind.has_cycle ? `اكتمال المجالات: ${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً` : "لا توجد دورة تقويم نشطة"}</p><div class="lb-doms">${doms.map((x, i) => `<div><div class="lb-row"><span>${esc(x.name)}</span><b>${x.approved}/${x.total}${x.total ? " · " + num(Math.round((100 * x.approved) / x.total)) + "%" : ""}</b></div><div class="lb-bar"><i style="width:${x.total ? Math.max((100 * x.approved) / x.total, x.evaluated ? 3 : 0) : 0}%;animation-delay:${i * .12}s"></i></div></div>`).join("")}</div></section>
+      <section id="lbCal" class="lb-calw" aria-label="التقويم واللقاءات"></section>
+      ${disCard(at)}
+      ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
+      <section class="lb-p lb-bk"><div class="dh"><span class="ico c">${ic("booking")}</span><div><h4>حجوزات اليوم</h4><p>جدول المرافق على مدار اليوم</p></div><a href="/facility-booking/bookings.html">فتح الحجوزات</a></div>
+        <div class="chs"><span class="g"><b>${num(bk.length - pend)}</b>حجز معتمد</span><span class="y"><b>${num(pend)}</b>بانتظار الاعتماد</span><span class="b"><b>${num(fa.available_now)}</b>متاح الآن من ${num(fa.total_bookable)}</span></div>${bookingsTL(fa)}</section>
+      ${indCard(ind)}
       <div class="lb-sec"><h3>حالة الأنظمة</h3><small>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته</small></div>
       <div class="lb-srcg">${Object.keys(SYS).map((k) => { const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, cls = age < 2 ? "" : age < 7 ? "mid" : "old", n = pl.by_sys[k] || 0; return `<a class="lb-sc ${cls}" style="--c:${COL[k]};text-decoration:none;color:inherit" href="${k === "core" ? "/digital-core/dashboard.html" : k === "saas" ? "/self-evaluation/admin.html" : k === "plans" ? "/smart-plans/" : k === "community" ? "/teachers-community/" : k === "indibati" ? "/indibati/dashboard.html" : k === "qiyami" ? "/qiyami/leaderboard.html" : "/facility-booking/bookings.html"}"><div class="ic">${esc(SYS[k][0])}</div><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً في 14 يوماً</small><div class="lb-bar" style="height:6px;margin-top:8px"><i style="width:${Math.max((n / totAct) * 100, n ? 4 : 0)}%;background:${COL[k]}"></i></div><div class="fr"><i></i>${age < 2 ? "نشط" : age < 7 ? "هادئ" : "ساكن"} · ${REL(v)}</div></a>`; }).join("")}</div>`;
     body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
+    body.querySelectorAll(".cu").forEach((el) => countUp(el, el.dataset.cu));
     await calWidget(body.querySelector("#lbCal"));
   }
 
