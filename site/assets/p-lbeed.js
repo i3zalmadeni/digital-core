@@ -197,7 +197,7 @@ async function lbeedPage(m) {
       <div class="lb-p lb-ag ${anim ? "an" : ""}"><div class="agh"><div class="big"><b>${num(new Date(CAL.sel + "T12:00:00").getDate())}</b><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))}</span></div><div class="meta"><h4>${esc(dayName(CAL.sel))}</h4><p>${esc(hijri(new Date(CAL.sel + "T12:00:00")))}</p></div><div class="cn"><b>${num(all.length)}</b><span>حدثاً</span></div></div>
         <div class="wks" role="group" aria-label="أيام الأسبوع"><button type="button" id="wP" aria-label="الأسبوع السابق">${ic("chev")}</button>${strip}<button type="button" id="wN" aria-label="الأسبوع التالي">${ic("chev")}</button></div>
         <div class="lb-fc" role="group" aria-label="تصفية الأحداث">${KF.filter(([k]) => k === "all" || cnt[k]).map(([k, n]) => `<button type="button" data-k="${k}" class="${CAL.kf === k ? "on" : ""}">${n}<b>${num(k === "all" ? all.length : cnt[k])}</b></button>`).join("")}</div>
-        <div class="tl">${tl || `<div class="lb-nomt">${calSvg}<b>${all.length ? "لا أحداث من هذا النوع" : "يوم هادئ، لا لقاءات أو فعاليات مجدولة"}</b><span>ما يُجدول في أي نظام من أنظمة المدرسة يظهر هنا فوراً.</span></div>`}</div>${upHtml}</div></div>${progCard(WC[wkk] || { events: [] })}`;
+        <div class="agb"><div class="tl">${tl || `<div class="lb-nomt">${calSvg}<b>${all.length ? "لا أحداث من هذا النوع" : "يوم هادئ، لا لقاءات أو فعاليات مجدولة"}</b><span>ما يُجدول في أي نظام من أنظمة المدرسة يظهر هنا فوراً.</span></div>`}</div>${upHtml}</div></div></div>${progCard(WC[wkk] || { events: [] })}`;
     host.querySelectorAll(".lb-mg [data-d],.wks [data-d],.up [data-d]").forEach((b) => (b.onclick = () => setSel(host, b.dataset.d)));
     host.querySelector("#mP").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() - 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
     host.querySelector("#mN").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
@@ -253,10 +253,9 @@ async function lbeedPage(m) {
     const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية</h4><p>نظرة سريعة على إنجاز برامج المدرسة وما يجري هذا الأسبوع</p></div><a href="/smart-plans/">فتح الخطط</a></div>`;
     const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" style="stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>نسبة الإنجاز</span></div></div>`;
     const kp = `<div class="pgk"><span><b>${num(o.total)}</b>برنامجاً</span><span><b>${num(o.done)}</b>منفّذ</span><span><b>${num(o.running)}</b>قيد التنفيذ</span><span class="${o.late ? "w" : ""}"><b>${num(o.late)}</b>متأخر</span></div>`;
-    const nxt = nx ? `<a class="pgn" href="${esc(nx.link || "/smart-plans/")}"><small>البرنامج القادم</small><b>${esc(nx.name)}</b><span>${esc(dayName(nx.day))} ${esc(fmt(nx.day))}${nx.until && nx.until !== nx.day ? " – " + esc(fmt(nx.until)) : ""}</span>${nx.beneficiary ? `<span>المستفيد: ${esc(nx.beneficiary)}</span>` : ""}${nx.owner ? `<span>المنفّذ: ${esc(nx.owner)}</span>` : ""}</a>` : `<div class="pgn"><small>البرنامج القادم</small><b>لا برامج قادمة</b></div>`;
     const bars = (o.plans || []).slice(0, 4).map((p) => { const v = p.n ? Math.round((100 * p.done) / p.n) : 0; return `<div class="pb"><span>${esc(p.name)}</span><i><u style="width:${v}%"></u></i><em>${num(p.done)}/${num(p.n)}</em></div>`; }).join("");
     const wkl = ps.length ? `<div class="pgl">${ps.map((e) => `<a class="pgc" href="${esc(e.link || "/smart-plans/")}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span></a>`).join("")}</div>` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`;
-    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}${bars ? `<div class="pbs">${bars}</div>` : ""}</div>${nxt}</div><h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
+    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}${bars ? `<div class="pbs">${bars}</div>` : ""}</div></div><h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
   }
   /* ----- الحجوزات حسب الحصص ----- */
   function periodsCard(pd) {
@@ -280,7 +279,7 @@ async function lbeedPage(m) {
     const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>لوحة الصدارة · قيمي</h4><p>أفضل ${num(top.length)} طلاب بحسب النقاط</p></div><a href="${esc(link)}">لوحة الشرف</a></div>`;
     if (!top.length) return `<section class="lb-p lb-top">${head}${em("لا بيانات في لوحة الشرف بعد.")}</section>`;
     const mx = Math.max(1, ...top.map((x) => x.balance));
-    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(x.rank)}</span>${x.rank === 1 ? `<span class="cr">${ic("crown")}</span>` : ""}<span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pt"><i style="width:${(100 * x.balance) / mx}%"></i></span><em>${num(x.balance)} نقطة</em></a>`;
+    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${x.id ? "/report/profile.html?k=student&id=" + encodeURIComponent(x.id) : esc(link)}" title="فتح ملف ${esc(x.name)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(x.rank)}</span>${x.rank === 1 ? `<span class="cr">${ic("crown")}</span>` : ""}<span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pt"><i style="width:${(100 * x.balance) / mx}%"></i></span><em>${num(x.balance)} نقطة</em></a>`;
     const set = top.map(one).join("");
     return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب">${head}<div class="vp"><div class="tr" style="animation-duration:${Math.max(40, top.length * 7)}s">${set}${set}</div></div></section>`;
   }
@@ -320,12 +319,12 @@ async function lbeedPage(m) {
       ${docsStrip(docs || [])}
       <section id="lbCal" class="lb-calw" aria-label="التقويم واللقاءات"></section>
       ${indCard(d.indicators || {})}
-      ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
-      ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${growthCard(gl || [])}
       ${achCard(ach || [])}
       ${periodsCard(pd || { periods: [] })}
       ${commCard(cs || [], cev || [])}
+      ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
+      ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${sysCard(d, pl)}`;
     body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
     body.querySelectorAll(".sq").forEach((b) => (b.onclick = () => sysDlg(b.dataset.k)));
