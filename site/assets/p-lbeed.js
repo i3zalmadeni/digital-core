@@ -188,7 +188,7 @@ async function lbeedPage(m) {
       return `${mark}<div class="ev ${esc(e.state || "")} ${open ? "open" : ""}" style="--c:${COL[e.sys]};--i:${i}"><div class="tc">${st == null ? `<b>طوال اليوم</b>` : `<b>${esc(mm)}</b>${e.to || e.ends_at ? `<small>${esc(e.to ? tm2(e.to) : tm(e.ends_at))}</small>` : ""}`}</div><div class="rl"><i></i></div>
         <article class="ec"><button type="button" class="eh" data-k="${i}" aria-expanded="${open}"><span class="ico">${ic(KI[e.kind])}</span><span class="tt"><b>${esc(e.title)}</b><small>${esc(TYPE[e.kind] || e.kind)}${e.place || e.location ? " · " + esc(e.place || e.location) : ""}${e.owner ? " · " + esc(e.owner) : ""}</small></span>${e.kind === "meeting" ? stB(e.state) : ""}<span class="chv">${ic("chev")}</span></button>
         <div class="eb"><div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><a class="go" href="${esc(e.link || "#")}">فتح في ${esc(SYS[e.sys])} ${ic("up")}</a></div></div></article></div>`; };
-    const wkk = ws0(CAL.sel), upAll = [wkk, addDays(wkk, 7), addDays(wkk, 14)].flatMap((k) => (WC[k] && WC[k].events) || []).filter((e) => e.day > CAL.sel && new Date(e.day + "T12:00:00").getDay() < 5 && e.kind !== "calendar").sort((a, b) => String(a.day).localeCompare(String(b.day)) || (minsOf(a) ?? -1) - (minsOf(b) ?? -1)).slice(0, 6);
+    const wkk = ws0(CAL.sel), upAll = [wkk, addDays(wkk, 7), addDays(wkk, 14)].flatMap((k) => (WC[k] && WC[k].events) || []).filter((e) => e.day > CAL.sel && new Date(e.day + "T12:00:00").getDay() < 5 && e.kind !== "calendar" && e.kind !== "program").sort((a, b) => String(a.day).localeCompare(String(b.day)) || (minsOf(a) ?? -1) - (minsOf(b) ?? -1)).slice(0, 6);
     const upHtml = `<div class="up ${all.length ? "" : "big"}"><h5>الأحداث القادمة</h5>${upAll.length ? upAll.map((e) => `<button type="button" class="ui" data-d="${esc(e.day)}" style="--c:${COL[e.sys]}"><span class="dd"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${esc(TYPE[e.kind] || e.kind)}${e.starts_at ? " · " + esc(tm(e.starts_at)) : e.from ? " · " + esc(tm2(e.from)) : ""}${e.place ? " · " + esc(e.place) : ""}</small></span>${chip(e.sys)}</button>`).join("") : `<div class="lb-em">لا أحداث مجدولة في الأسبوعين القادمين.</div>`}</div>`;
     const tl = ev.map(line).join("") + (!nowDone && ev.length ? `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>` : "");
     host.innerHTML = `<div class="lb-cal"><div class="lb-p lb-mcal"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">${ic("chev")}</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">${ic("chev")}</button></div>
@@ -246,11 +246,17 @@ async function lbeedPage(m) {
     return `<section class="lb-p lb-ach">${head}<div class="al">${list.map((x, i) => `<a class="ap r${i < 3 ? i + 1 : 0}" href="${esc(x.link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(i + 1)}</span><span class="ph">${x.photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", x.photo))}">` : esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.specialty || "معلم")}</small><span class="pt"><i style="width:${(100 * x.hours) / mx}%"></i></span><em>${num(x.hours)} ساعة · ${num(x.records)} نشاط</em></a>`).join("")}</div></section>`;
   }
   /* ----- برامج هذا الأسبوع ----- */
+  let PO = null;
   function progCard(wk) {
-    const ps = (wk.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day)));
-    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>برامج هذا الأسبوع</h4><p>${esc(fmt(wk.from))} – ${esc(fmt(wk.to))} · ${num(ps.length)} برنامجاً</p></div><a href="/smart-plans/">الخطط الذكية</a></div>`;
-    if (!ps.length) return `<section class="lb-p lb-pg">${head}${em("لا برامج مجدولة هذا الأسبوع.", ["/smart-plans/", "فتح الخطط الذكية"])}</section>`;
-    return `<section class="lb-p lb-pg">${head}<div class="pgl">${ps.map((e) => `<a class="pgc" href="${esc(e.link || "/smart-plans/")}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span>${e.status ? `<span class="lb-st b">${esc(e.status)}</span>` : ""}</a>`).join("")}</div></section>`;
+    const o = PO || { total: 0, done: 0, running: 0, late: 0, plans: [] }, ps = (wk.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day)));
+    const pct = o.total ? Math.round((100 * o.done) / o.total) : 0, nx = o.next, C = 2 * Math.PI * 52;
+    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية</h4><p>نظرة سريعة على إنجاز برامج المدرسة وما يجري هذا الأسبوع</p></div><a href="/smart-plans/">فتح الخطط</a></div>`;
+    const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" style="stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>نسبة الإنجاز</span></div></div>`;
+    const kp = `<div class="pgk"><span><b>${num(o.total)}</b>برنامجاً</span><span><b>${num(o.done)}</b>منفّذ</span><span><b>${num(o.running)}</b>قيد التنفيذ</span><span class="${o.late ? "w" : ""}"><b>${num(o.late)}</b>متأخر</span></div>`;
+    const nxt = nx ? `<a class="pgn" href="/smart-plans/"><small>البرنامج القادم</small><b>${esc(nx.name)}</b><span>${esc(dayName(nx.day))} ${esc(fmt(nx.day))}${nx.until && nx.until !== nx.day ? " – " + esc(fmt(nx.until)) : ""}</span>${nx.beneficiary ? `<span>المستفيد: ${esc(nx.beneficiary)}</span>` : ""}${nx.owner ? `<span>المنفّذ: ${esc(nx.owner)}</span>` : ""}</a>` : `<div class="pgn"><small>البرنامج القادم</small><b>لا برامج قادمة</b></div>`;
+    const bars = (o.plans || []).slice(0, 4).map((p) => { const v = p.n ? Math.round((100 * p.done) / p.n) : 0; return `<div class="pb"><span>${esc(p.name)}</span><i><u style="width:${v}%"></u></i><em>${num(p.done)}/${num(p.n)}</em></div>`; }).join("");
+    const wkl = ps.length ? `<div class="pgl">${ps.map((e) => `<a class="pgc" href="${esc(e.link || "/smart-plans/")}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span></a>`).join("")}</div>` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`;
+    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}${bars ? `<div class="pbs">${bars}</div>` : ""}</div>${nxt}</div><h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
   }
   /* ----- الحجوزات حسب الحصص ----- */
   function periodsCard(pd) {
@@ -307,6 +313,7 @@ async function lbeedPage(m) {
 
   async function overview() {
     const [d, pl, docs, gl, ach, pd, cs, cev, top, hn, md] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_growth_latest", { p_n: 8 }).catch(() => []), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ badges: [], link: "/qiyami/leaderboard.html" })), rpc("lb_media").catch(() => ({ people: [] }))]);
+    PO = await rpc("lb_plans_overview").catch(() => null);
     people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
     const q = d.qiyami || {};
     body.innerHTML = `${disCard(d.attendance || {})}
@@ -352,7 +359,7 @@ async function lbeedPage(m) {
   }
   m.querySelectorAll(".lb-tabs [data-v]").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; m.querySelectorAll(".lb-tabs [data-v]").forEach((x) => x.classList.toggle("on", x === b)); load(); }));
   m.querySelector("#lbR").onclick = () => load();
-  setInterval(() => { if (!document.hidden && S.view === "ov") load(true); }, 60000);
+  setInterval(() => { if (!document.hidden && S.view === "ov") load(true); }, 600000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden && S.view === "ov") load(true); });
   await load();
 }
