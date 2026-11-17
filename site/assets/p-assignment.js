@@ -18,7 +18,7 @@ boot("assignment.html", async (m, c) => {
   // نموذج الإنشاء والتعديل (التعديل بعد الإصدار ينشئ إصداراً جديداً)
   async function form(a) {
     const v = a ? ASG.latest(a) : null, tQ = await sb.from("assignment_titles").select("*").eq("is_active", true).order("sort_order");
-    const T = tQ.data || [];
+    const T = tQ.data || []; let atts = [...(v?.attachments || [])];
     // الدليل التنظيمي (للتعبئة التلقائية) والعام الدراسي الحالي (للتواريخ الافتراضية)
     const [gjQ, gaQ, gdQ, yrQ] = a ? [{}, {}, {}, {}] : await Promise.all([sb.from("guide_jobs").select("id,code,title,subtitle,objective").order("sort_order"), sb.from("guide_assignments").select("id,title,full_title,objective").order("sort_order"),
       sb.from("guide_duties").select("job_id,assignment_id,seq,body").order("seq"), sb.from("academic_years").select("starts_on,ends_on").eq("status", "current").maybeSingle()]);
