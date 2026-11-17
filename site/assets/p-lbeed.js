@@ -7,7 +7,7 @@ async function lbeedPage(m) {
   const ST = { upcoming: ["قادم", "b"], running: ["جارٍ الآن", "g"], ended: ["انتهى", ""], cancelled: ["ملغى", "r"], postponed: ["مؤجل", "y"] };
   const DOC = { none: ["لم يوثق", "y"], pending: ["بانتظار الاعتماد", "b"], documented: ["موثق", "g"] };
   const HUES = [["#0f8a94", "#0c4f5c"], ["#2f5ea8", "#183869"], ["#7a4bb5", "#43286d"], ["#b86d0c", "#6b3e04"], ["#24895a", "#14503a"], ["#b8434f", "#6d222c"]];
-  const S = { view: "week", day: null, mon: null, kf: "all", wk: null, wkMode: "grid", feed: { sys: "", kind: "", op: "", from: "", to: "", off: 0 } };
+  const S = { view: "day", day: null, mon: null, kf: "all", wk: null, wkMode: "grid", feed: { sys: "", kind: "", op: "", from: "", to: "", off: 0 } };
   const base = (APP_CONFIG && APP_CONFIG.supabaseUrl) || "";
   const pub = (b, p) => `${base}/storage/v1/object/public/${b}/${String(p).split("/").map(encodeURIComponent).join("/")}`;
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -32,7 +32,7 @@ async function lbeedPage(m) {
     <section class="lb-hero" aria-label="نبض لبيد"><div class="lb-beat" id="lbBeat" aria-hidden="true"></div><div class="in"><div class="row"><div class="ttl"><h2>يحدث في لبيد</h2><p class="tag">لبيد تتحرك، وإنجازاتها تُرى</p></div>
       <div class="lb-mini" id="lbStats"></div>
       <div class="dt"><b id="lbH"></b><span id="lbG"></span><span class="live" id="lbLive"><i></i><span id="lbLiveT">جارٍ التحميل</span></span><span id="lbU"></span></div></div></div></section>
-    <nav class="lb-tabs" aria-label="عروض النافذة"><div class="in"><button data-v="week" class="on" type="button">الأسبوع</button><button data-v="log" type="button">سجل التحديثات</button><span class="sp"></span><button class="rf" id="lbR" type="button">${ico("refresh")} تحديث</button></div></nav>
+    <nav class="lb-tabs" aria-label="عروض النافذة"><div class="in"><button data-v="day" class="on" type="button">اليوم</button><button data-v="week" type="button">أسبوع</button><button data-v="log" type="button">سجل التحديثات</button><span class="sp"></span><button class="rf" id="lbR" type="button">${ico("refresh")} تحديث</button></div></nav>
     <div class="lb-main"><div id="lbBody"></div>
     <p style="color:#6a8696;font-size:.82rem;margin:30px 0 6px">نافذة قراءة فقط تجمع ما تسجله أنظمة المدرسة السبعة من مصادرها الأصلية دون نسخ أو تعديل، وتحترم صلاحيات كل نظام. لا تُعرض فيها حالات فردية للطلاب، وتظهر الصور المنشورة فقط.</p></div></div>`;
   const body = m.querySelector("#lbBody");
@@ -97,6 +97,29 @@ async function lbeedPage(m) {
   const calSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="12" width="48" height="44" rx="9"/><path d="M8 26h48M20 6v10M44 6v10M22 38h6M36 38h6M22 47h6"/></svg>`;
   const camSvg = `<svg viewBox="0 0 64 64" width="56" height="56" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 20h10l4-6h20l4 6h10v34H8z"/><circle cx="32" cy="35" r="10"/></svg>`;
 
+  async function calSection(host) {
+    const sel = S.day || iso(nowRy()), mon = S.mon || sel.slice(0, 8) + "01";
+    host.style.opacity = ".6";
+    const [mo, d] = await Promise.all([rpc("lb_month", { p_month: mon }), rpc("lb_day", { p_day: sel })]);
+    host.style.opacity = "";
+    const first = new Date(mon + "T12:00:00"), nDays = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate(), td = iso(nowRy());
+    const by = {}; (mo.events || []).forEach((e) => { (by[e.day] = by[e.day] || new Set()).add(e.sys); });
+    let cells = WD.map((w) => `<span class="w">${w}</span>`).join("") + Array.from({ length: first.getDay() }, () => "<span></span>").join("");
+    for (let i = 1; i <= nDays; i++) { const k = `${mon.slice(0, 8)}${String(i).padStart(2, "0")}`; cells += `<button type="button" data-d="${k}" class="${k === td ? "today" : ""} ${k === sel ? "sel" : ""}" aria-label="${dayName(k)} ${i}"><span>${num(i)}</span>${by[k] ? `<i>${[...by[k]].slice(0, 3).map((s) => `<b style="--c:${COL[s]}"></b>`).join("")}</i>` : ""}</button>`; }
+    const mname = first.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
+    const ms = d.meetings || [], pr = d.programs || [], bk = (d.facilities && d.facilities.bookings) || [];
+    const meetHtml = ms.length ? ms.map((x) => `<div class="lb-agi ${esc(x.state)}" style="--c:${COL[x.sys]}"><div class="tm">${tm(x.starts_at)}</div><div><b>${lnk(x.link, x.title)}</b></div><div>${stB(x.state)}</div><div class="mt">${chip(x.sys)}<span>${esc(x.team || "")}</span>${x.location ? `<span>${esc(x.location)}</span>` : ""}${x.owner ? `<span>${esc(x.owner)}</span>` : ""}${x.state === "ended" || x.state === "running" ? `<span class="lb-st ${(DOC[x.doc] || DOC.none)[1]}">${(DOC[x.doc] || DOC.none)[0]}</span>` : ""}${x.actions && x.actions.length ? `<span>توصيات: ${x.actions.map((t) => esc(t.title)).join("، ")}</span>` : ""}</div></div>`).join("")
+      : `<div class="lb-nomt">${calSvg}<b>لا يوجد اجتماعات</b><span>لم يُجدوَل أي اجتماع في ${esc(dayName(d.day))} ${fmt(d.day)}.</span></div>`;
+    const other = pr.map((x) => `<div class="lb-agi" style="--c:${COL.plans}"><div class="tm">برنامج</div><div><b>${lnk(x.link, x.name)}</b></div><div>${chip("plans")}</div><div class="mt"><span>${esc(x.owner || "")}</span><span>${esc(x.status || "")}</span></div></div>`).join("") + bk.map((x) => `<div class="lb-agi ${esc(x.state)}" style="--c:${COL.booking}"><div class="tm">${tm2(x.start)}</div><div><b>${lnk(x.link, x.facility)}</b></div><div>${stB(x.state)}</div><div class="mt">${chip("booking")}<span>${esc(x.beneficiary || "")}</span><span>${esc(x.purpose || "")}</span></div></div>`).join("");
+    host.innerHTML = `<div class="lb-p"><div class="lb-mh"><button type="button" id="cPrev" aria-label="الشهر السابق">›</button><b>${esc(mname)}</b><button type="button" id="cNext" aria-label="الشهر التالي">‹</button></div><div class="lb-mg">${cells}</div><div class="lb-leg" style="margin-top:10px">${Object.keys(SYS).filter((k) => [...Object.values(by)].some((s) => s.has(k))).map((k) => `<span><i style="background:${COL[k]}"></i>${esc(SYS[k])}</span>`).join("")}</div></div>
+      <div class="lb-p lb-ag"><h4>${esc(dayName(d.day))} ${fmt(d.day)} ${d.is_today ? `<span class="lb-st g">اليوم</span>` : `<button id="cToday" type="button" class="lb-st b" style="border:0;cursor:pointer">العودة لليوم</button>`}</h4><p class="sub">الاجتماعات والبرامج والحجوزات في هذا اليوم</p>${meetHtml}${other ? `<div style="margin-top:6px">${other}</div>` : ""}</div>`;
+    reveal();
+    host.querySelectorAll(".lb-mg button").forEach((b) => (b.onclick = () => { S.day = b.dataset.d; calSection(host); }));
+    const mv = (n) => { const x = new Date(mon + "T12:00:00"); x.setMonth(x.getMonth() + n); S.mon = iso(x).slice(0, 8) + "01"; calSection(host); };
+    host.querySelector("#cPrev").onclick = () => mv(-1); host.querySelector("#cNext").onclick = () => mv(1);
+    const t = host.querySelector("#cToday"); if (t) t.onclick = () => { S.day = null; S.mon = null; calSection(host); };
+  }
+
   const GRP = { meeting: "اجتماعات", program: "برامج", task: "مهام", deadline: "مهام", booking: "حجوزات", calendar: "مواعيد التقويم" };
   const FK = [["all", "الكل"], ["meeting", "اجتماعات"], ["program", "برامج"], ["task", "مهام ومواعيد"], ["booking", "حجوزات"], ["calendar", "تقويم المدرسة"]];
   const kOf = (e) => (e.kind === "deadline" ? "task" : e.kind);
@@ -116,16 +139,14 @@ async function lbeedPage(m) {
     host.querySelectorAll(".lb-fc button").forEach((b) => (b.onclick = () => { S.kf = b.dataset.k; weekGuide(host, w, dd); }));
   }
 
-  async function mainView() {
+  async function dayView() {
     const wkAgo = new Date(Date.now() - 7 * 864e5).toISOString();
-    const [d, tk, fd, md, pl, wk, gr, nw] = await Promise.all([rpc("lb_day", { p_day: null }), rpc("lb_ticker").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: null, p_kind: null, p_op: null, p_ach: true, p_limit: 5, p_offset: 0 }).catch(() => ({ items: [] })), rpc("lb_media").catch(() => ({ people: [], badges: [], gallery: [] })), hero(), rpc("lb_week", { p_from: S.wk }), rpc("lb_growth").catch(() => null), rpc("lb_feed", { p_from: wkAgo, p_to: null, p_sys: "plans", p_kind: null, p_op: "new", p_ach: null, p_limit: 6, p_offset: 0 }).catch(() => ({ items: [], total: 0 }))]);
+    const [d, tk, fd, md, pl, wk, gr, nw] = await Promise.all([rpc("lb_day", { p_day: null }), rpc("lb_ticker").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: null, p_kind: null, p_op: null, p_ach: true, p_limit: 5, p_offset: 0 }).catch(() => ({ items: [] })), rpc("lb_media").catch(() => ({ people: [], badges: [], gallery: [] })), hero(), rpc("lb_week", { p_from: null }), rpc("lb_growth").catch(() => null), rpc("lb_feed", { p_from: wkAgo, p_to: null, p_sys: "plans", p_kind: null, p_op: "new", p_ach: null, p_limit: 6, p_offset: 0 }).catch(() => ({ items: [], total: 0 }))]);
     people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
     const ind = d.indicators || {}, plan = d.plans || {}, co = d.community || {}, q = d.qiyami || {}, at = d.attendance || {}, fa = d.facilities || {}, items = fd.items || [];
     const givers = {}; (q.givers || []).forEach((g) => (givers[g.name] = g));
     const faces = [...(md.people || []).map((p) => faceCard(p, givers[p.name])), ...(q.givers || []).filter((g) => !people[g.name] && g.name !== "مدير النواة الرقمية").map((g) => faceCard({ name: g.name, specialty: "معلم" }, g))];
     const doms = ind.domains || [], totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
-    const wkIsNow = !S.wk, h = wk.harvest || {};
-    const harv = [["لقاءات منفذة", h.meetings_held], ["محاضر موثقة", h.documented], ["برامج منجزة", h.programs_done == null ? null : h.programs_done + " من " + h.programs_planned], ["إنجازات موثقة", h.achievements], ["أوسمة ممنوحة", h.badges], ["تعزيزات", h.reinforcements], ["مؤشرات تغيّرت", h.indicators_changed], ["شواهد مضافة", h.evidence_added]];
     const progs = (wk.events || []).filter((e) => e.kind === "program");
     body.innerHTML = `
       ${tk && tk.length ? `<div class="lb-tick" id="lbTick"><span class="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>حديث لبيد</span><div class="vp"><div class="tr">${[0, 1].map(() => tk.map((x) => `<a href="${esc(x.link || "#")}">${esc(x.text)}<em>${esc(x.tag)}</em></a>`).join("")).join("")}</div></div><button class="pb" id="lbPz" type="button" aria-label="إيقاف الحركة أو تشغيلها">II</button></div>` : ""}
@@ -134,10 +155,8 @@ async function lbeedPage(m) {
         <div class="lb-p dk c4" style="background:linear-gradient(160deg,#17414f,#0f2f3b)"><h4>حضور الطلاب اليوم</h4><p class="sub">مجاميع من الفصول المرصودة فقط</p>${at.recorded ? `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">${ring(at.present_pct, "الحضور", "حضور", "#f0b34a")}<div style="font-size:.88rem;line-height:2"><div>فصول مرصودة <b>${num(at.sections_recorded)}</b> من ${num(at.sections_total)}</div><div>غياب <b>${num(at.absent)}</b> (بعذر ${num(at.absent_excused)})</div><div>تأخر <b>${num(at.late)}</b></div></div></div>` : `<div class="lb-em" style="border-color:rgba(255,255,255,.25);color:#a9d4d9">لم يُرصد الحضور في هذا اليوم بعد.</div>`}<a class="more" href="/indibati/dashboard.html" style="display:block;margin-top:10px">فتح انضباطي</a></div>
         <div class="lb-p c8"><h4>نبض الأنظمة خلال 14 يوماً</h4><p class="sub">عدد السجلات الجديدة والمعدلة كل يوم</p>${areaChart(pl.days)}</div>
       </div>
-      <div class="lb-sec"><h3>${wkIsNow ? "ما سيُنفَّذ هذا الأسبوع" : "جدول أسبوع " + fmt(wk.from)}</h3><span class="lb-fl" style="margin:0"><button id="lbWP" type="button">الأسبوع السابق</button><button id="lbWT" type="button">هذا الأسبوع</button><button id="lbWN" type="button">الأسبوع التالي</button></span></div>
+      <div class="lb-sec"><h3>ما سيُنفَّذ هذا الأسبوع</h3><small>اختر نوعاً لتصفية الجدول</small></div>
       <div class="lb-g" id="lbGuide"></div>
-      <div class="lb-sec"><h3>حصاد الأسبوع</h3><small>${fmt(wk.from)} – ${fmt(wk.to)}</small></div>
-      <div class="lb-harv">${harv.map(([a, b]) => `<div class="lb-hv"><b>${typeof b === "string" ? esc(b) : num(b)}</b><span>${a}</span></div>`).join("")}</div>
       <div class="lb-sec"><h3>النمو المهني والخطط</h3><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>
       <div class="lb-g">
         <div class="lb-p c5"><h4>النمو المهني للمعلمين</h4><p class="sub">${gr ? `${num(gr.plans)} خطة نمو من ${num(gr.teachers)} معلماً · هدف ${num(gr.target_hours)} ساعة` : "تعذر تحميل بيانات النمو المهني"}</p>${gr ? `<div class="lb-mini2"><div><b>${num(gr.records_30d)}</b><span>سجل نمو جديد (30 يوماً)</span></div><div><b>${num(gr.approved_hours)}</b><span>ساعة معتمدة</span></div><div><b>${num(gr.pending_review)}</b><span>بانتظار المراجعة</span></div></div>${(gr.latest || []).length ? gr.latest.map((x) => `<div class="lb-it">${av(x.who, "community")}<div class="tx">${lnk(x.link, x.title)}<div class="mt"><span>${esc(x.who)}</span>${x.hours ? `<span>${num(x.hours)} ساعة</span>` : ""}<span>${fmt(x.done_on)}</span></div></div></div>`).join("") : em("لم تُعتمد سجلات نمو مهني بعد. تظهر هنا حين يضيفها المعلمون ويعتمدها المنسق.", ["/teachers-community/#/growth", "فتح النمو المهني"])}` : ""}</div>
@@ -148,6 +167,8 @@ async function lbeedPage(m) {
       </div>
       <div class="lb-sec"><h3>لقطات من أنشطة المدرسة</h3><small>من الخطط الذكية ومجتمع لبيد المهني</small></div>
       <div class="lb-shots">${(md.gallery || []).length ? `<div class="lb-gal">${md.gallery.map((g) => `<a href="${esc(g.link)}"><img loading="lazy" alt="نشاط مدرسي" src="${esc(pub("sp-evidence", g.path))}"></a>`).join("")}</div>` : `<div class="lb-nomt" style="padding:22px 10px"><span style="color:var(--brand)">${camSvg}</span><b>لا توجد لقطات منشورة بعد</b><span>تظهر هنا صور الأنشطة فور رفعها كشواهد في <a href="/smart-plans/" style="color:var(--brand2);font-weight:700">الخطط الذكية</a> أو <a href="/teachers-community/" style="color:var(--brand2);font-weight:700">مجتمع لبيد المهني</a>.</span></div>`}</div>
+      <div class="lb-sec"><h3>تصفّح التقويم</h3><small>اختر يوماً لعرض اجتماعاته وبرامجه وحجوزاته</small></div>
+      <div class="lb-cal" id="lbCal"></div>
       <div class="lb-sec"><h3>مؤشرات المدرسة</h3><a href="${esc(ind.link || "#")}">التقويم الذاتي</a></div>
       <div class="lb-g">
         <div class="lb-p c7"><h4>${ind.cycle ? esc(ind.cycle) : "مؤشرات المدرسة"}</h4><p class="sub">${ind.has_cycle ? `${num(ind.approved)} معتمد من ${num(ind.total)} · تغيّر ${num(ind.changed_7d)} خلال 7 أيام` : "لا توجد دورة تقويم نشطة"}</p>
@@ -172,8 +193,26 @@ async function lbeedPage(m) {
       <div class="lb-srcg">${Object.keys(SYS).map((k) => { const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, cls = age < 2 ? "" : age < 7 ? "mid" : "old", n = pl.by_sys[k] || 0; return `<a class="lb-sc ${cls}" style="--c:${COL[k]};text-decoration:none;color:inherit" href="${k === "core" ? "/digital-core/dashboard.html" : k === "saas" ? "/self-evaluation/admin.html" : k === "plans" ? "/smart-plans/" : k === "community" ? "/teachers-community/" : k === "indibati" ? "/indibati/dashboard.html" : k === "qiyami" ? "/qiyami/leaderboard.html" : "/facility-booking/bookings.html"}"><div class="ic">${esc(SYS[k][0])}</div><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً في 14 يوماً</small><div class="lb-bar" style="height:6px;margin-top:8px"><i style="width:${Math.max((n / totAct) * 100, n ? 4 : 0)}%;background:${COL[k]}"></i></div><div class="fr"><i></i>${age < 2 ? "نشط" : age < 7 ? "هادئ" : "ساكن"} · ${REL(v)}</div></a>`; }).join("")}</div>`;
     const pz = body.querySelector("#lbPz"); if (pz) pz.onclick = () => body.querySelector("#lbTick").classList.toggle("pz");
     weekGuide(body.querySelector("#lbGuide"), wk, d);
-    const sh = (n) => { const x = new Date(wk.from + "T12:00:00"); x.setDate(x.getDate() + n); S.wk = iso(x); load(); };
+    calSection(body.querySelector("#lbCal"));
+  }
+
+  /* ---------- الأسبوع ---------- */
+  const evCard = (e) => `<a class="lb-ev" style="--c:${COL[e.sys]}" href="${esc(e.link || "#")}"><b>${esc(e.title)}</b><small>${esc(KIND[e.kind] || e.kind)} · ${esc(SYS[e.sys] || "")}${e.starts_at ? " · " + tm(e.starts_at) : e.from ? " · " + tm2(e.from) : ""}${e.owner ? " · " + esc(e.owner) : ""}</small></a>`;
+  async function weekView() {
+    const [w] = await Promise.all([rpc("lb_week", { p_from: S.wk }), hero(), rpc("lb_media").then((md) => { people = {}; (md.people || []).forEach((p) => (people[p.name] = p)); }).catch(() => {})]);
+    const h = w.harvest || {}, ev = w.events || [], days = [];
+    for (let i = 0; i < 7; i++) { const x = new Date(w.from + "T12:00:00"); x.setDate(x.getDate() + i); days.push(iso(x)); }
+    const td = iso(nowRy()), by = (k) => ev.filter((e) => e.day === k);
+    const harv = [["لقاءات منفذة", h.meetings_held], ["محاضر موثقة", h.documented], ["برامج منجزة", h.programs_done == null ? null : h.programs_done + " من " + h.programs_planned], ["إنجازات موثقة", h.achievements], ["أوسمة ممنوحة", h.badges], ["تعزيزات", h.reinforcements], ["مؤشرات تغيّرت", h.indicators_changed], ["شواهد مضافة", h.evidence_added], ["أيام رصد الحضور", h.attendance_days], ["إجمالي السجلات", h.records]];
+    body.innerHTML = `<div class="lb-sec"><h3>حصاد الأسبوع</h3><small>${fmt(w.from)} – ${fmt(w.to)}</small></div>
+      <div class="lb-harv">${harv.map(([a, b]) => `<div class="lb-hv"><b>${typeof b === "string" ? esc(b) : num(b)}</b><span>${a}</span></div>`).join("")}</div>
+      ${(h.highlights || []).length ? `<div class="lb-p" style="margin-top:14px"><h4>أبرز ما حدث</h4><div class="lb-feed">${h.highlights.map((x) => `<div class="lb-it">${av(x.actor || "", x.sys)}<div class="tx">${lnk(x.link, x.title)}<div class="mt">${chip(x.sys)}<span>${dt(x.at)}</span>${x.actor ? `<span>${esc(x.actor)}</span>` : ""}</div></div></div>`).join("")}</div></div>` : ""}
+      <div class="lb-sec"><h3>تقويم الأسبوع</h3><span class="lb-fl" style="margin:0"><button id="lbWP" type="button">الأسبوع السابق</button><button id="lbWT" type="button">هذا الأسبوع</button><button id="lbWN" type="button">الأسبوع التالي</button><button id="lbWM" type="button">${S.wkMode === "grid" ? "عرض جدولي" : "عرض الأيام"}</button></span></div>
+      ${S.wkMode === "grid" ? `<div class="lb-wk">${days.map((k) => `<div class="lb-wd ${k === td ? "today" : ""}"><h5>${esc(dayName(k))}<small>${fmt(k)}</small></h5>${by(k).length ? by(k).map(evCard).join("") : `<div style="color:#9ab0bb;font-size:.8rem">لا أحداث</div>`}</div>`).join("")}</div>`
+      : `<div class="lb-p tw"><table><thead><tr><th>اليوم</th><th>النوع</th><th>العنوان</th><th>النظام</th><th>المسؤول</th><th>الوقت</th></tr></thead><tbody>${ev.length ? ev.map((e) => `<tr><td>${esc(dayName(e.day))} ${fmt(e.day)}</td><td>${esc(KIND[e.kind] || e.kind)}</td><td>${lnk(e.link, e.title)}</td><td>${chip(e.sys)}</td><td>${esc(e.owner || "—")}</td><td>${e.starts_at ? tm(e.starts_at) : e.from ? tm2(e.from) + (e.to ? " – " + tm2(e.to) : "") : "—"}</td></tr>`).join("") : `<tr><td colspan="6">${em("لا أحداث في هذا الأسبوع.")}</td></tr>`}</tbody></table></div>`}`;
+    const sh = (n) => { const x = new Date(w.from + "T12:00:00"); x.setDate(x.getDate() + n); S.wk = iso(x); load(); };
     body.querySelector("#lbWP").onclick = () => sh(-7); body.querySelector("#lbWN").onclick = () => sh(7); body.querySelector("#lbWT").onclick = () => { S.wk = null; load(); };
+    body.querySelector("#lbWM").onclick = () => { S.wkMode = S.wkMode === "grid" ? "table" : "grid"; load(); };
   }
 
   /* ---------- سجل التحديثات ---------- */
@@ -196,13 +235,13 @@ async function lbeedPage(m) {
   const reveal = () => { const root = m.querySelector(".lb"); if (!io) return; root.classList.add("js"); let i = 0; m.querySelectorAll(".lb-p,.lb-sc,.lb-hv,.lb-face,.lb-sec,.lb-shots,.lb-tick,.lb-wd").forEach((el) => { if (el.classList.contains("in-v")) return; if (quiet) { el.classList.add("in-v"); return; } el.dataset.rd = Math.min((i++ % 6) * 70, 350); io.observe(el); }); };
   async function load(silent) {
     if (!silent) skel();
-    try { await ({ week: mainView, log: logView })[S.view](); ok = true; last = new Date(); quiet = !!silent; reveal(); }
+    try { await ({ day: dayView, week: weekView, log: logView })[S.view](); ok = true; last = new Date(); quiet = !!silent; reveal(); }
     catch (e) { ok = false; if (!silent || body.querySelector(".lb-sk")) body.innerHTML = em(e && e.code === "42501" ? "هذه النافذة متاحة لمنسوبي المدرسة المفعّلة حساباتهم." : "تعذر تحميل البيانات حالياً. اضغط «تحديث» للمحاولة مرة أخرى."); }
     setStatus();
   }
   m.querySelectorAll(".lb-tabs [data-v]").forEach((b) => (b.onclick = () => { S.view = b.dataset.v; m.querySelectorAll(".lb-tabs [data-v]").forEach((x) => x.classList.toggle("on", x === b)); load(); }));
   m.querySelector("#lbR").onclick = () => load();
-  setInterval(() => { if (!document.hidden && S.view === "week") load(true); }, 60000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.view === "week") load(true); });
+  setInterval(() => { if (!document.hidden && S.view === "day") load(true); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.view === "day") load(true); });
   await load();
 }
