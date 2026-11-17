@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from "npm:@simplewebauthn/server@10.0.1";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -31,6 +32,7 @@ Deno.serve(async (req) => {
   const u = new URL(req.url);
   const path = (u.pathname.split("/core-api")[1] ?? u.pathname).replace(/\/+$/, "") || "/";
   try {
+    if (path.startsWith("/passkey/")) return await passkeyRoute(req, path);
     if (path.startsWith("/admin/")) return await adminRoute(req, path);
     if (path.startsWith("/v1/")) return await integrationRoute(req, u, path);
     return json({ service: "core-api", version: "2.0", docs: "docs/api.md" });
@@ -246,6 +248,94 @@ async function adminRoute(req: Request, path: string) {
     const { error } = await db.auth.admin.updateUserById(s.user_id, { password });
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });
+  }
+  return json({ error: "not_found" }, 404);
+}
+
+// ===== الدخول بالبصمة (WebAuthn): بصمة الوجه تُتحقق داخل الجهاز، ولا يصل الخادم إلا المفتاح العام =====
+// كل الأنظمة على الأصل نفسه، فمفتاح واحد يصلح للدخول إليها جميعاً عبر الجلسة المشتركة.
+const RP_ID = "i3zalmadeni.github.io";
+const RP_NAME = "النواة الرقمية";
+const ORIGIN = "https://i3zalmadeni.github.io";
+const MAX_PASSKEYS = 5;
+const b64uToBytes = (s: string) => { const b = atob(s.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(s.length / 4) * 4, "=")); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+const bytesToB64u = (u: Uint8Array) => btoa(String.fromCharCode(...u)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+async function takeChallenge(clientDataJSON: string, kind: string) {
+  let challenge = "";
+  try { challenge = JSON.parse(new TextDecoder().decode(b64uToBytes(clientDataJSON))).challenge ?? ""; } catch (_) { return null; }
+  if (!challenge) return null;
+  const { data } = await db.from("passkey_challenges").delete().eq("challenge", challenge).eq("kind", kind).select("challenge,user_id,expires_at").maybeSingle();
+  if (!data || new Date(data.expires_at).getTime() < Date.now()) return null;
+  return data as { challenge: string; user_id: string | null };
+}
+
+async function passkeyRoute(req: Request, path: string) {
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  const body = await req.json().catch(() => ({}));
+  db.from("passkey_challenges").delete().lt("expires_at", new Date().toISOString()).then(() => {});
+
+  // --- تسجيل مفتاح جديد: يتطلب جلسة قائمة ---
+  if (path === "/passkey/register-options" || path === "/passkey/register-verify") {
+    const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: ud } = await db.auth.getUser(token);
+    const user = ud?.user; if (!user) return json({ error: "unauthorized" }, 401);
+    const { data: mine } = await db.from("passkeys").select("credential_id").eq("user_id", user.id);
+    if (path === "/passkey/register-options") {
+      if ((mine?.length ?? 0) >= MAX_PASSKEYS) return json({ error: "too_many_passkeys", max: MAX_PASSKEYS }, 409);
+      const opts = await generateRegistrationOptions({
+        rpName: RP_NAME, rpID: RP_ID, userName: user.email ?? user.id, userDisplayName: String(body.name ?? user.email ?? "").slice(0, 80),
+        userID: new TextEncoder().encode(user.id), attestationType: "none",
+        excludeCredentials: (mine ?? []).map((k) => ({ id: k.credential_id })),
+        authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
+      });
+      await db.from("passkey_challenges").insert({ challenge: opts.challenge, kind: "register", user_id: user.id });
+      return json(opts);
+    }
+    const resp = body.response; if (!resp?.response?.clientDataJSON) return json({ error: "bad_request" }, 400);
+    const ch = await takeChallenge(resp.response.clientDataJSON, "register");
+    if (!ch || ch.user_id !== user.id) return json({ error: "challenge_expired" }, 400);
+    let v;
+    try { v = await verifyRegistrationResponse({ response: resp, expectedChallenge: ch.challenge, expectedOrigin: ORIGIN, expectedRPID: RP_ID, requireUserVerification: true }); }
+    catch (e) { console.error(e); return json({ error: "verification_failed" }, 400); }
+    if (!v.verified || !v.registrationInfo) return json({ error: "verification_failed" }, 400);
+    const info = v.registrationInfo;
+    const { error } = await db.from("passkeys").insert({
+      user_id: user.id, credential_id: bytesToB64u(info.credentialID), public_key: bytesToB64u(info.credentialPublicKey), counter: info.counter,
+      transports: resp.response.transports ?? [], device_label: String(body.label ?? "").trim().slice(0, 60) || null,
+    });
+    if (error) return json({ error: /unique|duplicate/i.test(error.message) ? "already_registered" : "save_failed" }, 409);
+    return json({ ok: true });
+  }
+
+  // --- الدخول: لا جلسة سابقة. المفتاح قابل للاكتشاف فلا حاجة لكتابة المعرّف (ولا كشف لوجود حسابات) ---
+  if (path === "/passkey/login-options") {
+    const opts = await generateAuthenticationOptions({ rpID: RP_ID, userVerification: "required", allowCredentials: [] });
+    await db.from("passkey_challenges").insert({ challenge: opts.challenge, kind: "login" });
+    return json(opts);
+  }
+  if (path === "/passkey/login-verify") {
+    const resp = body.response; if (!resp?.response?.clientDataJSON || !resp?.id) return json({ error: "bad_request" }, 400);
+    const ch = await takeChallenge(resp.response.clientDataJSON, "login");
+    if (!ch) return json({ error: "challenge_expired" }, 400);
+    const { data: key } = await db.from("passkeys").select("id,user_id,credential_id,public_key,counter,transports").eq("credential_id", resp.id).maybeSingle();
+    if (!key) return json({ error: "unknown_passkey" }, 401);
+    let v;
+    try {
+      v = await verifyAuthenticationResponse({ response: resp, expectedChallenge: ch.challenge, expectedOrigin: ORIGIN, expectedRPID: RP_ID, requireUserVerification: true,
+        authenticator: { credentialID: b64uToBytes(key.credential_id), credentialPublicKey: b64uToBytes(key.public_key), counter: Number(key.counter), transports: key.transports } });
+    } catch (e) { console.error(e); return json({ error: "verification_failed" }, 401); }
+    if (!v.verified) return json({ error: "verification_failed" }, 401);
+    // الحساب يجب أن يكون فعّالاً وغير موقوف، كما في الدخول بكلمة المرور
+    const { data: au } = await db.auth.admin.getUserById(key.user_id);
+    const u = au?.user; if (!u?.email) return json({ error: "no_account" }, 401);
+    if (u.banned_until && new Date(u.banned_until).getTime() > Date.now()) return json({ error: "banned" }, 403);
+    const { data: st } = await db.from("staff_members").select("is_active,account_status").eq("user_id", key.user_id).maybeSingle();
+    if (!st || !st.is_active || st.account_status !== "active") return json({ error: "inactive" }, 403);
+    await db.from("passkeys").update({ counter: v.authenticationInfo.newCounter, last_used_at: new Date().toISOString() }).eq("id", key.id);
+    const { data: link, error } = await db.auth.admin.generateLink({ type: "magiclink", email: u.email });
+    if (error || !link?.properties?.hashed_token) return json({ error: "session_failed" }, 500);
+    return json({ ok: true, token_hash: link.properties.hashed_token });
   }
   return json({ error: "not_found" }, 404);
 }
