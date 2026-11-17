@@ -166,7 +166,7 @@ async function lbeedPage(m) {
   const kk = (e) => (e.kind === "deadline" ? "task" : e.kind);
   const minsOf = (e) => { if (e.starts_at) { const d = new Date(new Date(e.starts_at).toLocaleString("en-US", { timeZone: "Asia/Riyadh" })); return d.getHours() * 60 + d.getMinutes(); } if (e.from) { const [h, mi] = String(e.from).split(":"); return +h * 60 + +mi; } return null; };
   const dayEv = (k) => { const w = WC[ws0(k)]; return w ? (w.events || []).filter((e) => e.day === k || (e.kind === "program" && e.until && e.day <= k && k <= e.until)) : []; };
-  async function ensure() { const wk = ws0(CAL.sel); await Promise.all([MC[CAL.mon] ? 0 : rpc("lb_month", { p_month: CAL.mon }).then((r) => (MC[CAL.mon] = r)), WC[wk] ? 0 : rpc("lb_week", { p_from: wk }).then((r) => (WC[wk] = r))]); }
+  async function ensure() { const wk = ws0(CAL.sel), ks = [wk, addDays(wk, 7), addDays(wk, 14)]; await Promise.all([MC[CAL.mon] ? 0 : rpc("lb_month", { p_month: CAL.mon }).then((r) => (MC[CAL.mon] = r)), ...ks.map((k) => (WC[k] ? 0 : rpc("lb_week", { p_from: k }).then((r) => (WC[k] = r)).catch(() => (WC[k] = { events: [] }))))]); }
   function evRows(e) { const when = e.starts_at ? `${fmt(e.day)} · ${tm(e.starts_at)}` : e.from ? `${fmt(e.day)} · ${tm2(e.from)} – ${tm2(e.to)}` : e.until && e.until !== e.day ? `من ${fmt(e.day)} إلى ${fmt(e.until)}` : fmt(e.day);
     return [["الموعد", `${dayName(e.day)} ${when}`], ["النظام", SYS[e.sys]], ["الفريق أو الجهة", e.team], ["المكان", e.place || e.location], ["المسؤول", e.owner], ["الفئة المستفيدة", e.beneficiary], ["التوثيق", e.kind === "meeting" && e.doc ? (DOC[e.doc] || [""])[0] : null]].filter((r) => r[1]); }
   const wkd = (k) => { const w = new Date(k + "T12:00:00").getDay(); return w === 5 ? addDays(k, 2) : w === 6 ? addDays(k, 1) : k; };
@@ -188,6 +188,8 @@ async function lbeedPage(m) {
       return `${mark}<div class="ev ${esc(e.state || "")} ${open ? "open" : ""}" style="--c:${COL[e.sys]};--i:${i}"><div class="tc">${st == null ? `<b>طوال اليوم</b>` : `<b>${esc(mm)}</b>${e.to || e.ends_at ? `<small>${esc(e.to ? tm2(e.to) : tm(e.ends_at))}</small>` : ""}`}</div><div class="rl"><i></i></div>
         <article class="ec"><button type="button" class="eh" data-k="${i}" aria-expanded="${open}"><span class="ico">${ic(KI[e.kind])}</span><span class="tt"><b>${esc(e.title)}</b><small>${esc(TYPE[e.kind] || e.kind)}${e.place || e.location ? " · " + esc(e.place || e.location) : ""}${e.owner ? " · " + esc(e.owner) : ""}</small></span>${e.kind === "meeting" ? stB(e.state) : ""}<span class="chv">${ic("chev")}</span></button>
         <div class="eb"><div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><a class="go" href="${esc(e.link || "#")}">فتح في ${esc(SYS[e.sys])} ${ic("up")}</a></div></div></article></div>`; };
+    const wkk = ws0(CAL.sel), upAll = [wkk, addDays(wkk, 7), addDays(wkk, 14)].flatMap((k) => (WC[k] && WC[k].events) || []).filter((e) => e.day > CAL.sel && new Date(e.day + "T12:00:00").getDay() < 5 && e.kind !== "calendar").sort((a, b) => String(a.day).localeCompare(String(b.day)) || (minsOf(a) ?? -1) - (minsOf(b) ?? -1)).slice(0, 6);
+    const upHtml = `<div class="up ${all.length ? "" : "big"}"><h5>الأحداث القادمة</h5>${upAll.length ? upAll.map((e) => `<button type="button" class="ui" data-d="${esc(e.day)}" style="--c:${COL[e.sys]}"><span class="dd"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${esc(TYPE[e.kind] || e.kind)}${e.starts_at ? " · " + esc(tm(e.starts_at)) : e.from ? " · " + esc(tm2(e.from)) : ""}${e.place ? " · " + esc(e.place) : ""}</small></span>${chip(e.sys)}</button>`).join("") : `<div class="lb-em">لا أحداث مجدولة في الأسبوعين القادمين.</div>`}</div>`;
     const tl = ev.map(line).join("") + (!nowDone && ev.length ? `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>` : "");
     host.innerHTML = `<div class="lb-cal"><div class="lb-p lb-mcal"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">${ic("chev")}</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">${ic("chev")}</button></div>
         <div class="lb-mg">${["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"].map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div><button type="button" class="tdb" id="mT">العودة إلى اليوم</button>
@@ -195,8 +197,8 @@ async function lbeedPage(m) {
       <div class="lb-p lb-ag ${anim ? "an" : ""}"><div class="agh"><div class="big"><b>${num(new Date(CAL.sel + "T12:00:00").getDate())}</b><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))}</span></div><div class="meta"><h4>${esc(dayName(CAL.sel))}</h4><p>${esc(hijri(new Date(CAL.sel + "T12:00:00")))}</p></div><div class="cn"><b>${num(all.length)}</b><span>حدثاً</span></div></div>
         <div class="wks" role="group" aria-label="أيام الأسبوع"><button type="button" id="wP" aria-label="الأسبوع السابق">${ic("chev")}</button>${strip}<button type="button" id="wN" aria-label="الأسبوع التالي">${ic("chev")}</button></div>
         <div class="lb-fc" role="group" aria-label="تصفية الأحداث">${KF.filter(([k]) => k === "all" || cnt[k]).map(([k, n]) => `<button type="button" data-k="${k}" class="${CAL.kf === k ? "on" : ""}">${n}<b>${num(k === "all" ? all.length : cnt[k])}</b></button>`).join("")}</div>
-        <div class="tl">${tl || `<div class="lb-nomt">${calSvg}<b>${all.length ? "لا أحداث من هذا النوع" : "يوم هادئ، لا لقاءات أو فعاليات مجدولة"}</b><span>ما يُجدول في أي نظام من أنظمة المدرسة يظهر هنا فوراً.</span></div>`}</div></div></div>`;
-    host.querySelectorAll(".lb-mg [data-d],.wks [data-d]").forEach((b) => (b.onclick = () => setSel(host, b.dataset.d)));
+        <div class="tl">${tl || `<div class="lb-nomt">${calSvg}<b>${all.length ? "لا أحداث من هذا النوع" : "يوم هادئ، لا لقاءات أو فعاليات مجدولة"}</b><span>ما يُجدول في أي نظام من أنظمة المدرسة يظهر هنا فوراً.</span></div>`}</div>${upHtml}</div></div>${progCard(WC[wkk] || { events: [] })}`;
+    host.querySelectorAll(".lb-mg [data-d],.wks [data-d],.up [data-d]").forEach((b) => (b.onclick = () => setSel(host, b.dataset.d)));
     host.querySelector("#mP").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() - 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
     host.querySelector("#mN").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
     host.querySelector("#mT").onclick = () => { const t = wkd(iso(nowRy())); CAL.mon = t.slice(0, 8) + "01"; setSel(host, t); };
@@ -206,40 +208,35 @@ async function lbeedPage(m) {
   }
   function calWidget(host) { const td = wkd(iso(nowRy())); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01"; MC = {}; WC = {}; return paint(host, false); }
 
-  /* ----- بطاقة الانضباط (داكنة) ----- */
+  /* ----- بطاقة الانضباط (داكنة، النسبة هي البارزة) ----- */
   function disCard(at) {
     const head = `<div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>الانضباط اليوم</h4><p>الحضور والغياب والتأخر من نظام انضباطي</p></div><a href="/indibati/dashboard.html">فتح انضباطي</a></div>`;
     if (!at.recorded) return `<section class="lb-p dkc lb-dis">${head}<div class="lb-em">لم يُرصد الحضور اليوم بعد. تظهر النسب هنا فور رصد أول فصل.</div></section>`;
     const P = Math.round(at.present_pct || 0), A = Math.round(at.absent_pct || 0), R = 15.9155, ex = at.absent_excused || 0, un = at.absent_unexcused || 0, tot = Math.max(1, at.students_in_recorded || 1), st = at.sections_total || 0, sr = at.sections_recorded || 0;
     const cov = st ? Math.round((100 * sr) / st) : 0;
-    return `<section class="lb-p dkc lb-dis">${head}<div class="ds"><div class="rg" role="img" aria-label="الحضور ${P}% والغياب ${A}%"><svg viewBox="0 0 42 42"><circle class="tk" cx="21" cy="21" r="${R}"/><circle class="pr" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${P}"/><circle class="ab" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${A};--o:${-P}"/></svg><div class="ct"><b class="cu" data-cu="${P}" data-sfx="%">0</b><span>نسبة الحضور</span></div></div>
-      <div class="ks"><div class="k g"><b class="cu" data-cu="${at.present || 0}">0</b><span>الطلاب الحضور</span><small>من ${num(at.students_in_recorded)} طالباً</small></div>
-      <div class="k r"><b class="cu" data-cu="${A}" data-sfx="%">0</b><span>نسبة الغياب</span><small>${num(at.absent)} غائباً</small></div>
-      <div class="k y"><b class="cu" data-cu="${ex}">0</b><span>غياب بعذر</span><small>${num(un)} بدون عذر</small></div>
-      <div class="k b"><b class="cu" data-cu="${at.late || 0}">0</b><span>المتأخرون</span><small>سجلات التأخر اليوم</small></div></div></div>
-      <div class="ft2"><div class="cv"><span>تغطية الرصد: ${num(sr)} من ${num(st)} فصلاً (${num(cov)}%)</span><div class="dots">${Array.from({ length: st }, (_, i) => `<i class="${i < sr ? "on" : ""}"></i>`).join("")}</div></div>
-      <div class="sb"><div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#3ed598"></i>حاضر</span><span><i style="background:#f0b34a"></i>بعذر</span><span><i style="background:#ff7a66"></i>بدون عذر</span></div></div></div></section>`;
+    return `<section class="lb-p dkc lb-dis">${head}<div class="ds"><div class="rg" role="img" aria-label="الحضور ${P}% والغياب ${A}%"><svg viewBox="0 0 42 42"><circle class="tk" cx="21" cy="21" r="${R}"/><circle class="pr" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${P}"/><circle class="ab" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${A};--o:${-P}"/></svg><div class="ct"><b class="cu" data-cu="${P}" data-sfx="%">0</b><span>نسبة الحضور اليوم</span></div></div>
+      <div class="rt"><div class="ks"><div class="k g"><b class="cu" data-cu="${at.present || 0}">0</b><span>حاضر</span><small>من ${num(at.students_in_recorded)}</small></div><div class="k r"><b class="cu" data-cu="${A}" data-sfx="%">0</b><span>غياب</span><small>${num(at.absent)} طالباً</small></div><div class="k y"><b class="cu" data-cu="${ex}">0</b><span>بعذر</span><small>${num(un)} بدون</small></div><div class="k b"><b class="cu" data-cu="${at.late || 0}">0</b><span>متأخر</span><small>اليوم</small></div></div>
+      <div class="cv"><span>تغطية الرصد: ${num(sr)} من ${num(st)} فصلاً (${num(cov)}%)</span><div class="dots">${Array.from({ length: st }, (_, i) => `<i class="${i < sr ? "on" : ""}"></i>`).join("")}</div></div>
+      <div class="sb"><div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#3ed598"></i>حاضر</span><span><i style="background:#f0b34a"></i>بعذر</span><span><i style="background:#ff7a66"></i>بدون عذر</span></div></div></div></div></section>`;
   }
 
-  /* ----- مؤشرات المدرسة: خارطة اكتمال المجالات ----- */
+  /* ----- مؤشرات المدرسة: أعمدة اكتمال المجالات ----- */
   function indCard(ind) {
-    const doms = ind.domains || [], PAL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f"], ov = ind.total ? Math.round((100 * ind.approved) / ind.total) : 0;
+    const doms = ind.domains || [], PAL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f", "#0da9a6", "#c98a1b"], ov = ind.total ? Math.round((100 * ind.approved) / ind.total) : 0;
     const head = `<div class="dh"><span class="ico b">${ic("task")}</span><div><h4>مؤشرات المدرسة${ind.cycle ? " · " + esc(ind.cycle) : ""}</h4><p>${ind.has_cycle ? `اكتمال كل مجال بحسب المؤشرات المعتمدة · تغيّر ${num(ind.changed_7d)} خلال 7 أيام` : "لا توجد دورة تقويم نشطة"}</p></div><a href="/self-evaluation/admin.html">فتح التقويم الذاتي</a></div>`;
     if (!doms.length) return `<section class="lb-p lb-ind">${head}${em("لا مجالات للعرض.")}</section>`;
-    const ring = (p, c, sz) => `<svg viewBox="0 0 42 42" width="${sz}" height="${sz}" aria-hidden="true"><circle class="tk" cx="21" cy="21" r="15.9155"/><circle class="pr" cx="21" cy="21" r="15.9155" pathLength="100" style="--p:${p};stroke:${c}"/></svg>`;
-    return `<section class="lb-p lb-ind">${head}<div class="ig"><div class="ovr"><div class="rg">${ring(ov, "#0f8a94", 150)}<div class="ct"><b class="cu" data-cu="${ov}" data-sfx="%">0</b><span>اكتمال المدرسة</span></div></div><small>${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً</small></div>
-      <div class="dm">${doms.map((x, i) => { const p = x.total ? Math.round((100 * x.approved) / x.total) : 0, c = PAL[i % PAL.length]; return `<a class="d" href="/self-evaluation/admin.html" style="--c:${c}"><span class="rg">${ring(p, c, 68)}<b>${num(p)}%</b></span><span class="tx"><b>${esc(x.name)}</b><small>${num(x.total)} مؤشرات · ${num(x.approved)} معتمد · ${num(x.evaluated)} مقيَّم</small><small>${x.last_update ? "آخر تحديث " + dt(x.last_update) : "لم يُحدَّث بعد"}</small></span></a>`; }).join("")}</div></div></section>`;
+    const col = (x, i) => { const p = x.total ? Math.round((100 * x.approved) / x.total) : 0, e = x.total ? Math.round((100 * Math.max(x.evaluated, x.approved)) / x.total) : 0, c = PAL[i % PAL.length]; return `<a class="co" href="/self-evaluation/admin.html" style="--c:${c};--i:${i}" title="${esc(x.name)}: ${num(x.approved)} معتمد من ${num(x.total)} مؤشراً"><b class="v">${num(p)}%</b><span class="bar"><i class="ev" style="--h:${e}%"></i><i class="ap" style="--h:${p}%"></i></span><span class="nm">${esc(x.name)}</span><small>${num(x.approved)}/${num(x.total)} مؤشراً</small></a>`; };
+    return `<section class="lb-p lb-ind">${head}<div class="ig"><div class="ovr"><div class="rg"><svg viewBox="0 0 42 42" width="150" height="150" aria-hidden="true"><circle class="tk" cx="21" cy="21" r="15.9155"/><circle class="pr" cx="21" cy="21" r="15.9155" pathLength="100" style="--p:${ov};stroke:#0f8a94"/></svg><div class="ct"><b class="cu" data-cu="${ov}" data-sfx="%">0</b><span>اكتمال المدرسة</span></div></div><small>${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً</small>
+      <div class="lg"><span><i class="s1"></i>معتمد</span><span><i class="s2"></i>مقيَّم</span></div></div>
+      <div class="cols" role="img" aria-label="أعمدة اكتمال مجالات المؤشرات"><div class="grid"><i>100%</i><i>50%</i><i>0</i></div>${doms.map(col).join("")}</div></div></section>`;
   }
 
-  /* ----- النمو المهني ----- */
-  function growthCard(gr) {
-    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>النمو المهني للمعلمين</h4><p>${gr ? `${num(gr.plans)} خطة نمو من ${num(gr.teachers)} معلماً` : "تعذر تحميل البيانات"}</p></div><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>`;
-    if (!gr) return `<section class="lb-p lb-gr">${head}</section>`;
-    const mx = Math.max(1, ...(gr.needs || []).map((n) => n.n)), pr = gr.target_hours ? Math.min(100, Math.round((100 * gr.approved_hours) / gr.target_hours)) : 0;
-    return `<section class="lb-p lb-gr">${head}<div class="gg"><div class="gk"><div><b class="cu" data-cu="${gr.approved_hours || 0}">0</b><span>ساعة معتمدة</span></div><div><b class="cu" data-cu="${gr.records_30d || 0}">0</b><span>سجل جديد خلال 30 يوماً</span></div><div><b class="cu" data-cu="${gr.pending_review || 0}">0</b><span>بانتظار المراجعة</span></div>
-      <div class="pg"><div class="lb-row"><span>الإنجاز نحو هدف ${num(gr.target_hours)} ساعة</span><b>${num(pr)}%</b></div><div class="lb-bar"><i style="width:${pr}%"></i></div></div></div>
-      <div class="gl"><h5>آخر ما اعتُمد</h5>${(gr.latest || []).length ? gr.latest.map((x) => `<a class="lb-it" href="${esc(x.link)}">${av(x.who, "community")}<div class="tx"><b>${esc(x.title)}</b><div class="mt"><span>${esc(x.who)}</span>${x.hours ? `<span>${num(x.hours)} ساعة</span>` : ""}</div></div></a>`).join("") : em("لم تُعتمد سجلات نمو بعد.")}</div>
-      <div class="gn"><h5>الاحتياجات المهنية المفتوحة (${num(gr.needs_open)})</h5>${(gr.needs || []).length ? gr.needs.slice(0, 5).map((n, i) => `<div class="lb-row"><span>${esc(n.domain)}</span><b>${num(n.n)}${n.high ? ` · ${n.high} عالٍ` : ""}</b></div><div class="lb-bar"><i style="width:${(n.n / mx) * 100}%;animation-delay:${i * .08}s;background:linear-gradient(90deg,#7a4bb5,#b99ae0)"></i></div>`).join("") : em("لا احتياجات مسجلة.")}</div></div></section>`;
+  /* ----- آخر ما أُضيف من نمو مهني ----- */
+  const GK = { course: "دورة", training: "دورة تدريبية", workshop: "ورشة عمل", visit: "زيارة", publication: "منشور", award: "جائزة", conference: "مؤتمر", certificate: "شهادة", other: "نشاط" };
+  function growthCard(list) {
+    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>آخر ما أُضيف من نمو مهني</h4><p>الدورات والورش والأنشطة التي وثّقها المعلمون مؤخراً</p></div><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>`;
+    if (!list.length) return `<section class="lb-p lb-gr">${head}${em("لم يضف المعلمون نشاطاً مهنياً بعد.", ["/teachers-community/#/growth", "فتح النمو المهني"])}</section>`;
+    return `<section class="lb-p lb-gr">${head}<div class="gl2">${list.map((x) => { const ok = x.status === "approved"; return `<a class="gc" href="${esc(x.link)}" style="--h:${hue(x.who)[0]}"><span class="ph">${x.photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", x.photo))}">` : esc(mono(x.who))}</span><span class="tx"><b>${esc(x.title)}</b><small>${esc(x.who)}${x.provider ? " · " + esc(x.provider) : ""}</small><span class="cs"><em class="k">${esc(GK[x.kind] || x.kind || "نشاط")}</em>${x.hours ? `<em>${num(x.hours)} ساعة</em>` : ""}<em class="${ok ? "ok" : "wt"}">${ok ? "معتمد" : "بانتظار المراجعة"}</em></span></span><time>${REL(x.at)}</time></a>`; }).join("")}</div></section>`;
   }
   /* ----- المعلمون الأكثر إنجازاً ----- */
   function achCard(list) {
@@ -272,35 +269,59 @@ async function lbeedPage(m) {
     return `<section class="lb-p dkc lb-cm">${head}${cs.length ? `<div class="vp"><div class="tr" style="animation-duration:${Math.max(30, cs.length * 12)}s">${set}${cs.length > 2 ? set : ""}</div></div>` : em("لا مجتمعات نشطة.")}
       <div class="ce"><h5>آخر الأحداث في المجتمعات</h5>${(ev || []).length ? ev.map((x) => `<a class="ei" href="${esc(x.link || "#")}"><span class="kd ${x.kind === "minutes" ? "doc" : ""}">${esc(KL[x.kind] || x.kind)}</span><span class="tx"><b>${esc(String(x.title).replace(/^[^:]+: /, ""))}</b><small>${esc(x.detail || "")}${x.actor ? " · " + esc(x.actor) : ""}</small></span><time>${REL(x.at)}</time></a>`).join("") : em("لا أحداث حديثة.")}</div></section>`;
   }
-  /* ----- حالة الأنظمة (أخضر، قابلة للتمدد) ----- */
+  /* ----- قيمي: لوحة الصدارة، المعلمون الأكثر منحاً، آخر الأوسمة ----- */
+  function topStrip(top, link) {
+    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>لوحة الصدارة · قيمي</h4><p>أفضل ${num(top.length)} طلاب بحسب النقاط</p></div><a href="${esc(link)}">لوحة الشرف</a></div>`;
+    if (!top.length) return `<section class="lb-p lb-top">${head}${em("لا بيانات في لوحة الشرف بعد.")}</section>`;
+    const mx = Math.max(1, ...top.map((x) => x.balance));
+    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(x.rank)}</span>${x.rank === 1 ? `<span class="cr">${ic("crown")}</span>` : ""}<span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pt"><i style="width:${(100 * x.balance) / mx}%"></i></span><em>${num(x.balance)} نقطة</em></a>`;
+    const set = top.map(one).join("");
+    return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب">${head}<div class="vp"><div class="tr" style="animation-duration:${Math.max(40, top.length * 7)}s">${set}${set}</div></div></section>`;
+  }
+  function qCard(givers, badges, link, wkBadges) {
+    const gv = (givers || []).filter((g) => g.name !== "مدير النواة الرقمية").sort((a, b) => (b.badges || 0) - (a.badges || 0) || (b.reinforcements || 0) - (a.reinforcements || 0)).slice(0, 10);
+    const head = `<div class="dh"><span class="ico g">${ic("user")}</span><div><h4>معلمون يصنعون الحركة</h4><p>الأكثر منحاً للتعزيز والأوسمة · ${num(wkBadges)} وساماً هذا الأسبوع</p></div><a href="${esc(link)}">قيمي</a></div>`;
+    return `<section class="lb-p lb-q">${head}${gv.length ? `<div class="lb-faces">${gv.map((g) => faceCard({ name: g.name, specialty: g.specialty || "معلم", photo: (people[g.name] || {}).photo }, g)).join("")}</div>` : em("لم يمنح أحد تعزيزاً أو وساماً بعد.")}
+      <h5 class="sh5">آخر الأوسمة الممنوحة</h5>${(badges || []).length ? `<div class="lb-bdg">${badges.map((x) => `<article class="bd2"><div class="im">${x.image ? `<img loading="lazy" alt="" src="${esc(pub("qm-badges", x.image))}">` : `<span>${esc(mono(x.badge))}</span>`}</div><b>${esc(x.badge)}</b><div class="who">${esc(x.student)}</div><small>منحه ${esc(x.by || "—")}</small><small>${REL(x.at)}</small></article>`).join("")}</div>` : em("لم تُمنح أوسمة بعد.")}</section>`;
+  }
+
+  /* ----- حالة الأنظمة: مربعات صغيرة ----- */
   const SICO = { core: "school", saas: "check", plans: "plan", community: "users", indibati: "clock", qiyami: "star", booking: "cal" };
   const SDESC = { core: "الهوية الموحدة والسجلات", saas: "المؤشرات والشواهد والتقييم", plans: "الخطط والبرامج وتوثيقها", community: "النمو المهني والمجتمعات", indibati: "الحضور والغياب والتأخر", qiyami: "النقاط والأوسمة والسلوك", booking: "حجز المرافق والقاعات" };
   const SURL = { core: "/digital-core/dashboard.html", saas: "/self-evaluation/admin.html", plans: "/smart-plans/", community: "/teachers-community/", indibati: "/indibati/dashboard.html", qiyami: "/qiyami/leaderboard.html", booking: "/facility-booking/bookings.html" };
-  const SOPEN = new Set();
+  let SYSI = {};
   function sysCard(d, pl) {
-    const tot = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
-    return `<section class="lb-p lb-sys"><div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>حالة الأنظمة</h4><p>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته · اضغط على النظام لتفاصيله</p></div></div><div class="sl">${Object.keys(SYS).map((k) => {
-      const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, st = age < 2 ? ["نشط", "ok"] : age < 7 ? ["هادئ", "mid"] : ["ساكن", "old"], n = pl.by_sys[k] || 0;
-      return `<div class="sy ${st[1]} ${SOPEN.has(k) ? "open" : ""}" data-k="${k}"><button type="button" class="sh" aria-expanded="${SOPEN.has(k)}"><span class="si">${ico(SICO[k])}</span><span class="tt"><b>${esc(SYS[k])}</b><small>${esc(SDESC[k])}</small></span><span class="bd"><i></i>${st[0]}</span><span class="chv">${ic("chev")}</span></button>
-        <div class="sb"><div><div class="sx"><div><b>${num(n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(v)}</b><span>آخر نشاط</span></div><div><b>${num(Math.round((100 * n) / tot))}%</b><span>من حركة المدرسة</span></div></div><div class="lb-bar"><i style="width:${Math.max((n / tot) * 100, n ? 4 : 0)}%"></i></div><div class="sf" data-sf="${k}"><small>جارٍ تحميل آخر الأحداث…</small></div><a class="go" href="${SURL[k]}">فتح ${esc(SYS[k])} ${ic("up")}</a></div></div></div>`; }).join("")}</div></section>`;
+    const tot = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1; SYSI = {};
+    const act = Object.keys(SYS).filter((k) => d.sources && d.sources[k] && (Date.now() - new Date(d.sources[k])) / 864e5 < 2).length;
+    return `<section class="lb-p lb-sys"><div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>حالة الأنظمة</h4><p>${num(act)} أنظمة نشطة من ${num(Object.keys(SYS).length)} · اضغط على أي نظام لتفاصيله</p></div></div><div class="stl">${Object.keys(SYS).map((k) => {
+      const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, st = age < 2 ? ["نشط", "ok"] : age < 7 ? ["هادئ", "mid"] : ["ساكن", "old"], n = pl.by_sys[k] || 0; SYSI[k] = { st, n, v, share: Math.round((100 * n) / tot) };
+      return `<button type="button" class="sq ${st[1]}" data-k="${k}"><span class="bd"><i></i>${st[0]}</span><span class="si">${ico(SICO[k])}</span><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً</small></button>`; }).join("")}</div></section>`;
   }
-  async function loadSf(el, k) { if (el.dataset.done) return; el.dataset.done = "1"; try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 4, p_offset: 0 }); const it = r.items || []; el.innerHTML = it.length ? it.map((x) => `<a href="${esc(x.link || "#")}"><b>${esc(x.title)}</b><small>${esc(x.actor || "")} · ${REL(x.at)}</small></a>`).join("") : `<small>لا أحداث حديثة.</small>`; } catch (e) { el.dataset.done = ""; el.innerHTML = `<small>تعذر التحميل.</small>`; } }
+  async function sysDlg(k) {
+    let dlg = m.querySelector("#lbDlg"); if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "lbDlg"; dlg.className = "lb-dlg"; m.querySelector(".lb").appendChild(dlg); dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); }); }
+    const i = SYSI[k] || { st: ["", ""], n: 0, share: 0 };
+    dlg.innerHTML = `<div class="hd" style="--c:#1d7a4f"><span class="ty">${esc(i.st[0])}</span><h3>${esc(SYS[k])}</h3><p style="margin:4px 0 0;opacity:.9;font-size:.88rem">${esc(SDESC[k])}</p></div><div class="sx2"><div><b>${num(i.n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(i.v)}</b><span>آخر نشاط</span></div><div><b>${num(i.share)}%</b><span>من حركة المدرسة</span></div></div><div class="sf2" id="sfD"><small>جارٍ تحميل آخر الأحداث…</small></div><div class="ft"><a class="go" href="${SURL[k]}">فتح ${esc(SYS[k])}</a><button type="button" id="dX">إغلاق</button></div>`;
+    dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 5, p_offset: 0 }), it = r.items || [], el = dlg.querySelector("#sfD"); if (el) el.innerHTML = it.length ? it.map((x) => `<a href="${esc(x.link || "#")}"><b>${esc(x.title)}</b><small>${esc(x.actor || "")} · ${REL(x.at)}</small></a>`).join("") : `<small>لا أحداث حديثة.</small>`; } catch (e) { const el = dlg.querySelector("#sfD"); if (el) el.innerHTML = `<small>تعذر تحميل الأحداث.</small>`; }
+  }
 
   async function overview() {
-    const [d, pl, docs, wk, gr, ach, pd, cs, cev] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_week", { p_from: null }).catch(() => ({ events: [] })), rpc("lb_growth").catch(() => null), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => [])]);
+    const [d, pl, docs, gl, ach, pd, cs, cev, top, hn, md] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_growth_latest", { p_n: 8 }).catch(() => []), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ badges: [], link: "/qiyami/leaderboard.html" })), rpc("lb_media").catch(() => ({ people: [] }))]);
+    people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
+    const q = d.qiyami || {};
     body.innerHTML = `${disCard(d.attendance || {})}
       ${docsStrip(docs || [])}
       <section id="lbCal" class="lb-calw" aria-label="التقويم واللقاءات"></section>
       ${indCard(d.indicators || {})}
-      ${growthCard(gr)}
+      ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
+      ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
+      ${growthCard(gl || [])}
       ${achCard(ach || [])}
-      ${progCard(wk || { events: [] })}
       ${periodsCard(pd || { periods: [] })}
       ${commCard(cs || [], cev || [])}
       ${sysCard(d, pl)}`;
     body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
-    body.querySelectorAll(".sy .sh").forEach((b) => (b.onclick = () => { const r = b.parentElement, k = r.dataset.k, on = !r.classList.contains("open"); r.classList.toggle("open", on); b.setAttribute("aria-expanded", on); on ? SOPEN.add(k) : SOPEN.delete(k); if (on) loadSf(r.querySelector(".sf"), k); }));
-    body.querySelectorAll(".sy.open .sf").forEach((e) => loadSf(e, e.dataset.sf));
+    body.querySelectorAll(".sq").forEach((b) => (b.onclick = () => sysDlg(b.dataset.k)));
     body.querySelectorAll(".cu").forEach((el) => countUp(el, el.dataset.cu));
     await calWidget(body.querySelector("#lbCal"));
   }
