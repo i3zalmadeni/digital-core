@@ -70,12 +70,12 @@ async function lbeedPage(m) {
     const ks = Object.keys(SYS).filter((k) => by[k] > 0), tot = ks.reduce((a, k) => a + by[k], 0), R = 52, C = 2 * Math.PI * R; let off = 0;
     if (!tot) return em("لا نشاط مسجل في الفترة.");
     const arcs = ks.map((k) => { const l = (by[k] / tot) * C, el = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${COL[k]}" stroke-width="22" stroke-dasharray="${l - 2} ${C - l + 2}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${SYS[k]}: ${by[k]}</title></circle>`; off += l; return el; }).join("");
-    return `<div class="lb-donut"><svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="توزيع النشاط على الأنظمة">${arcs}<text x="70" y="68" text-anchor="middle" font-family="Reem Kufi" font-size="26" fill="#062f36">${num(tot)}</text><text x="70" y="86" text-anchor="middle" font-size="10" fill="#6a8696">سجلاً</text></svg>
+    return `<div class="lb-donut"><svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="توزيع النشاط على الأنظمة">${arcs}<text x="70" y="68" text-anchor="middle" font-size="26" fill="#062f36">${num(tot)}</text><text x="70" y="86" text-anchor="middle" font-size="10" fill="#6a8696">سجلاً</text></svg>
       <div class="lb-leg" style="flex-direction:column">${ks.sort((a, b) => by[b] - by[a]).map((k) => `<span><i style="background:${COL[k]}"></i>${esc(SYS[k])} <b>${num(by[k])}</b></span>`).join("")}</div></div>`;
   }
   function ring(pct, label, sub, color) {
     const R = 46, C = 2 * Math.PI * R, v = Math.max(0, Math.min(100, pct || 0));
-    return `<svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="${esc(label)} ${v}%"><circle cx="60" cy="60" r="${R}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="12"/><circle cx="60" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C * v) / 100} ${C}" transform="rotate(-90 60 60)" style="animation:lbd 1.4s ease-out"><animate attributeName="stroke-dasharray" from="0 ${C}" to="${(C * v) / 100} ${C}" dur="1.3s" fill="freeze"/></circle><text x="60" y="64" text-anchor="middle" font-family="Reem Kufi" font-size="26" fill="#fff">${v}%</text><text x="60" y="82" text-anchor="middle" font-size="9" fill="#a9d4d9">${esc(sub)}</text></svg>`;
+    return `<svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="${esc(label)} ${v}%"><circle cx="60" cy="60" r="${R}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="12"/><circle cx="60" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C * v) / 100} ${C}" transform="rotate(-90 60 60)" style="animation:lbd 1.4s ease-out"><animate attributeName="stroke-dasharray" from="0 ${C}" to="${(C * v) / 100} ${C}" dur="1.3s" fill="freeze"/></circle><text x="60" y="64" text-anchor="middle" font-size="26" fill="#fff">${v}%</text><text x="60" y="82" text-anchor="middle" font-size="9" fill="#a9d4d9">${esc(sub)}</text></svg>`;
   }
   function countUp(el, to) { const n = Number(to) || 0; if (matchMedia("(prefers-reduced-motion:reduce)").matches || n === 0) { el.textContent = num(n); return; } const t0 = performance.now(); (function f(t) { const k = Math.min(1, (t - t0) / 1400); el.textContent = num(Math.round(n * (1 - Math.pow(1 - k, 3)))); if (k < 1) requestAnimationFrame(f); })(t0); }
 
@@ -114,6 +114,7 @@ async function lbeedPage(m) {
     const other = pr.map((x) => `<div class="lb-agi" style="--c:${COL.plans}"><div class="tm">برنامج</div><div><b>${lnk(x.link, x.name)}</b></div><div>${chip("plans")}</div><div class="mt"><span>${esc(x.owner || "")}</span><span>${esc(x.status || "")}</span></div></div>`).join("") + bk.map((x) => `<div class="lb-agi ${esc(x.state)}" style="--c:${COL.booking}"><div class="tm">${tm2(x.start)}</div><div><b>${lnk(x.link, x.facility)}</b></div><div>${stB(x.state)}</div><div class="mt">${chip("booking")}<span>${esc(x.beneficiary || "")}</span><span>${esc(x.purpose || "")}</span></div></div>`).join("");
     host.innerHTML = `<div class="lb-p"><div class="lb-mh"><button type="button" id="cPrev" aria-label="الشهر السابق">›</button><b>${esc(mname)}</b><button type="button" id="cNext" aria-label="الشهر التالي">‹</button></div><div class="lb-mg">${cells}</div><div class="lb-leg" style="margin-top:10px">${Object.keys(SYS).filter((k) => [...Object.values(by)].some((s) => s.has(k))).map((k) => `<span><i style="background:${COL[k]}"></i>${esc(SYS[k])}</span>`).join("")}</div></div>
       <div class="lb-p lb-ag"><h4>${esc(dayName(d.day))} ${fmt(d.day)} ${d.is_today ? `<span class="lb-st g">اليوم</span>` : `<button id="cToday" type="button" class="lb-st b" style="border:0;cursor:pointer">العودة لليوم</button>`}</h4><p class="sub">الاجتماعات والبرامج والحجوزات في هذا اليوم</p>${meetHtml}${other ? `<div style="margin-top:6px">${other}</div>` : ""}</div>`;
+    reveal();
     host.querySelectorAll(".lb-mg button").forEach((b) => (b.onclick = () => { S.day = b.dataset.d; calSection(host); }));
     const mv = (n) => { const x = new Date(mon + "T12:00:00"); x.setMonth(x.getMonth() + n); S.mon = iso(x).slice(0, 8) + "01"; calSection(host); };
     host.querySelector("#cPrev").onclick = () => mv(-1); host.querySelector("#cNext").onclick = () => mv(1);
@@ -128,13 +129,13 @@ async function lbeedPage(m) {
     const faces = [...(md.people || []).map((p) => faceCard(p, givers[p.name])), ...(q.givers || []).filter((g) => !people[g.name] && g.name !== "مدير النواة الرقمية").map((g) => faceCard({ name: g.name, specialty: "معلم" }, g))];
     const doms = ind.domains || [], totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
     body.innerHTML = `
-      ${tk && tk.length ? `<div class="lb-tick" id="lbTick"><button class="pb" id="lbPz" type="button" aria-label="إيقاف الحركة أو تشغيلها">II</button><div class="tr">${[0, 1].map(() => tk.map((x) => `<a href="${esc(x.link || "#")}"><em>${esc(x.tag)}</em>${esc(x.text)}</a>`).join("")).join("")}</div></div>` : ""}
-      <div class="lb-sec"><h3>وجوه تصنع الحركة</h3><small>الصور المنشورة فقط</small></div>
-      ${faces.length ? `<div class="lb-faces">${faces.join("")}</div>` : em("لا معلمون منشورون بعد.")}
+      ${tk && tk.length ? `<div class="lb-tick" id="lbTick"><span class="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>حديث لبيد</span><div class="vp"><div class="tr">${[0, 1].map(() => tk.map((x) => `<a href="${esc(x.link || "#")}">${esc(x.text)}<em>${esc(x.tag)}</em></a>`).join("")).join("")}</div></div><button class="pb" id="lbPz" type="button" aria-label="إيقاف الحركة أو تشغيلها">II</button></div>` : ""}
       <div class="lb-sec"><h3>لقطات من أنشطة المدرسة</h3><small>من الخطط الذكية ومجتمع لبيد المهني</small></div>
       <div class="lb-shots">${(md.gallery || []).length ? `<div class="lb-gal">${md.gallery.map((g) => `<a href="${esc(g.link)}"><img loading="lazy" alt="نشاط مدرسي" src="${esc(pub("sp-evidence", g.path))}"></a>`).join("")}</div>` : `<div class="lb-nomt" style="padding:22px 10px"><span style="color:var(--brand)">${camSvg}</span><b>لا توجد لقطات منشورة بعد</b><span>تظهر هنا صور الأنشطة فور رفعها كشواهد في <a href="/smart-plans/" style="color:var(--brand2);font-weight:700">الخطط الذكية</a> أو <a href="/teachers-community/" style="color:var(--brand2);font-weight:700">مجتمع لبيد المهني</a>.</span></div>`}</div>
       <div class="lb-sec"><h3>التقويم والاجتماعات</h3><small>اختر يوماً لعرض ما فيه</small></div>
       <div class="lb-cal" id="lbCal"></div>
+      <div class="lb-sec"><h3>وجوه تصنع الحركة</h3><small>الصور المنشورة فقط</small></div>
+      ${faces.length ? `<div class="lb-faces">${faces.join("")}</div>` : em("لا معلمون منشورون بعد.")}
       <div class="lb-sec"><h3>الأرقام تتحرك</h3><small>من سجل التحديثات الموحد</small></div>
       <div class="lb-g">
         <div class="lb-p c7"><h4>نبض الأنظمة خلال 14 يوماً</h4><p class="sub">عدد السجلات الجديدة والمعدلة كل يوم</p>${areaChart(pl.days)}</div>
@@ -198,9 +199,12 @@ async function lbeedPage(m) {
     body.querySelector("#fP").onclick = () => { f.off = Math.max(0, f.off - LIM); load(); }; body.querySelector("#fN").onclick = () => { f.off += LIM; load(); };
   }
 
+  const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { const t = e.target; t.style.transitionDelay = (t.dataset.rd || 0) + "ms"; t.classList.add("in-v"); io.unobserve(t); } }), { threshold: 0.06 }) : null;
+  let quiet = false;
+  const reveal = () => { const root = m.querySelector(".lb"); if (!io) return; root.classList.add("js"); let i = 0; m.querySelectorAll(".lb-p,.lb-sc,.lb-hv,.lb-face,.lb-sec,.lb-shots,.lb-tick,.lb-wd").forEach((el) => { if (el.classList.contains("in-v")) return; if (quiet) { el.classList.add("in-v"); return; } el.dataset.rd = Math.min((i++ % 6) * 70, 350); io.observe(el); }); };
   async function load(silent) {
     if (!silent) skel();
-    try { await ({ day: dayView, week: weekView, log: logView })[S.view](); ok = true; last = new Date(); }
+    try { await ({ day: dayView, week: weekView, log: logView })[S.view](); ok = true; last = new Date(); quiet = !!silent; reveal(); }
     catch (e) { ok = false; if (!silent || body.querySelector(".lb-sk")) body.innerHTML = em(e && e.code === "42501" ? "هذه النافذة متاحة لمنسوبي المدرسة المفعّلة حساباتهم." : "تعذر تحميل البيانات حالياً. اضغط «تحديث» للمحاولة مرة أخرى."); }
     setStatus();
   }
