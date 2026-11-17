@@ -548,3 +548,21 @@
   .ui .tx{flex:1 1 calc(100% - 66px)}
   .ui .lb-chip{margin-inline-start:62px;max-width:calc(100% - 62px)}
 }
+
+/* ===== بطاقة «الانضباط اليوم» على الجوال: الحلقة (النسبة) أولاً، ثم الأرقام والتغطية والشريط تحتها بعرض كامل ===== */
+@media(max-width:860px){
+  .lb-dis,.lb-dis.dkc{padding:20px 16px}
+  .lb-dis .ds{grid-template-columns:minmax(0,1fr);justify-items:center;gap:20px}
+  .lb .lb-dis .rg{width:min(100%,250px)}
+  .lb-dis .rt{width:100%;min-width:0;gap:16px}
+  .lb-dis .ks{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .lb-dis .k{padding:12px 10px}
+  .lb-dis .k b{font-size:1.7rem}
+  .lb-dis .k span{font-size:.86rem}
+  .lb-dis .k small{font-size:.74rem}
+  .lb-dis .cv,.lb-dis .sb{width:100%}
+}
+@media(max-width:480px){
+  .lb-dis .dh{flex-wrap:wrap}
+  .lb-dis .dh>a{margin-inline-start:0;flex:1 1 100%;text-align:center}
+}
