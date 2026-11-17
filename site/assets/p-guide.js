@@ -54,7 +54,7 @@ boot("guide.html", async (m, c) => {
     if (!sel || !L.some((r) => r.id === sel)) sel = L[0]?.id || null;
     history.replaceState(null, "", `guide.html?t=${tab}${sel ? "&id=" + sel : ""}`);
     m.innerHTML = head("دليل الوظائف والتكليفات", "مرجع المسميات الوظيفية واللجان وفرق العمل ومهامها ومسؤولياتها كما وردت في الدليل التنظيمي.") +
-      `<div class="acts noprint">${mgr ? '<button class="btn" id="na" type="button">إضافة تكليف</button>' : ""}<button class="btn sec" id="exa" type="button">تصدير الكل Excel</button></div>
+      `<div class="acts noprint">${mgr ? `<button class="btn" id="na" type="button">${tab === "job" ? "إضافة مسمى وظيفي" : "إضافة تكليف"}</button>` : ""}<button class="btn sec" id="exa" type="button">تصدير الكل Excel</button></div>
        <div class="tabs mt" role="tablist"><button type="button" data-t="job" class="${tab === "job" ? "on" : ""}">الوظائف (${jl.length})</button><button type="button" data-t="assignment" class="${tab === "assignment" ? "on" : ""}">التكليفات واللجان (${al.length})</button></div>
        <div class="card mt noprint"><div class="fg"><div><label for="sq">بحث في الدليل</label><input id="sq" value="${esc(q)}" placeholder="العنوان أو الهدف أو نص المهمة"></div>
          ${tab === "assignment" ? `<div><label for="sk">النوع</label><select id="sk"><option value="">الكل</option>${opts(KIND, kind)}</select></div>` : ""}</div></div>
@@ -83,7 +83,7 @@ boot("guide.html", async (m, c) => {
     m.querySelectorAll("[data-lr]").forEach((b) => (b.onclick = () => confirm("إزالة هذا الربط؟") && run(sb.rpc("guide_link_remove", { p_id: b.dataset.lr }), "أُزيل الربط")));
     m.querySelector("#ed").onclick = () => recordForm(r, run);
     const dl = m.querySelector("#dl"); if (dl) dl.onclick = () => confirm("حذف هذا التكليف؟") && run(sb.rpc("guide_assignment_delete", { p_id: r.id }), "حُذف");
-    const na = m.querySelector("#na"); if (na) na.onclick = () => recordForm(null, run, "assignment");
+    const na = m.querySelector("#na"); if (na) na.onclick = () => recordForm(null, run, tab);
   }
 
   function dutyForm(d, r, run) {
