@@ -86,7 +86,7 @@ ICONS.assign = '<path d="M9 3h6l1 2h3v16H5V5h3zM9 13l2 2 4-4"/>';
 ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5V5.5M8 7h8M8 11h6"/>';
 const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["teaching.html", "إسناد التدريس", "book", "معلم كل مادة في كل فصل للعام الحالي", "school:view"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
-  ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["publish.html", "النشر في الموقع", "eye", "المفتاح العام ونشر المنسوبين في الموقع العام", "admin"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
+  ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة"], ["guide.html", "دليل الوظائف والتكليفات", "book", "المسميات الوظيفية واللجان وفرق العمل ومهامها حسب الدليل التنظيمي"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["publish.html", "النشر في الموقع", "eye", "المفتاح العام ونشر المنسوبين في الموقع العام", "admin"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html"); return; }
@@ -110,10 +110,10 @@ async function boot(page, render, o = {}) {
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
   const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
-  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html"].includes(page)) { location.replace("profile.html"); return; }
+  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html", "guide.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
-  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "guide.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
