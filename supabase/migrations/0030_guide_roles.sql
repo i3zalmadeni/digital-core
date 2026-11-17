@@ -770,3 +770,6 @@ insert into public.guide_assignment_links(assignment_id,job_id,seq,member_text) 
   ((select id from public.guide_assignments where code=$q$disability_team$q$),(select id from public.guide_jobs where code=$q$health_counselor$q$),3,$q$الموجه الصحي$q$,$q$عضو$q$),
   ((select id from public.guide_assignments where code=$q$disability_team$q$),(select id from public.guide_jobs where code=$q$teacher$q$),4,$q$اثنان من المعلمين ترشحهما اللجنة الإدارية$q$,$q$عضوان$q$),
   ((select id from public.guide_assignments where code=$q$disability_team$q$),(select id from public.guide_jobs where code=$q$sped_teacher$q$),5,$q$معلم ذوي الإعاقة (حسب الاختصاص)$q$,$q$عضواً ومقرراً$q$);
+
+-- صلاحية القراءة على الجداول (تُقيَّد بسياسات RLS أعلاه)
+grant select on public.guide_jobs, public.guide_assignments, public.guide_duties, public.guide_assignment_links to authenticated;
