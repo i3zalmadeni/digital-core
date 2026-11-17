@@ -15,22 +15,24 @@ boot("dashboard.html", async (m, c) => {
   const SM = sm.data || [], same = (o) => Object.fromEntries(Object.keys(o).map((k) => [k, k]));
   const byTitle = tally(SM, (x) => x.job_titles?.name_ar);
   const s = st.data || {}, p = sc.data || {}, G = Object.fromEntries((gr.data || []).map((x) => [x.code, x.name_ar])), FT = Object.fromEntries((ft.data || []).map((x) => [x.code, x.name_ar]));
-  const lst = (o, names) => { const e = Object.entries(o || {}), mx = Math.max(1, ...e.map(([, v]) => v)); return e.map(([k, v]) => `<div class="row3"><span>${esc(names[k] || k)}</span><b>${v}</b><div class="track"><i style="width:${Math.round((v / mx) * 100)}%"></i></div></div>`).join("") || '<span class="sub">لا توجد بيانات بعد.</span>'; };
-  const gradeRows = Object.keys(G).filter((k) => (s.students_by_grade || {})[k] || (s.classes_by_grade || {})[k]).map((k) => { const n = (s.students_by_grade || {})[k] || 0, f = (s.classes_by_grade || {})[k] || 0, mx = Math.max(1, ...Object.values(s.students_by_grade || {})); return `<div class="row3"><span>${esc(G[k])} <small class="sub">(${f} فصل)</small></span><b>${n}</b><div class="track"><i style="width:${Math.round((n / mx) * 100)}%"></i></div></div>`; }).join("") || '<span class="sub">لا توجد بيانات بعد.</span>';
+  const rowH = (name, v, mx, sub) => `<li><span class="st-n">${esc(name)}${sub ? ` <small>${sub}</small>` : ""}</span><b class="st-v">${v}</b><span class="st-t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span></li>`;
+  const lst = (o, names) => { const e = Object.entries(o || {}), mx = Math.max(1, ...e.map(([, v]) => v)); return e.length ? `<ul class="st-l">${e.map(([k, v]) => rowH(names[k] || k, v, mx)).join("")}</ul>` : '<p class="sub">لا توجد بيانات بعد.</p>'; };
+  const gradeRows = (() => { const SG = s.students_by_grade || {}, CG = s.classes_by_grade || {}, ks = Object.keys(G).filter((k) => SG[k] || CG[k]), mx = Math.max(1, ...ks.map((k) => SG[k] || 0)); return ks.length ? `<ul class="st-l">${ks.map((k) => rowH(G[k], SG[k] || 0, mx, `${CG[k] || 0} فصل`)).join("")}</ul>` : '<p class="sub">لا توجد بيانات بعد.</p>'; })();
+  const stCard = (ic, t, tot, body) => `<div class="card st3"><div class="st-h"><span class="st-i">${ic}</span><b>${t}</b><em>${tot ?? 0}</em></div>${body}</div>`;
   const kpi = (n, v, t, i) => `<div class="kpi k${i}"><div class="ic">${n}</div><div><b>${v ?? 0}</b><span>${t}</span></div></div>`;
   const reg = (href, ic, tone, t, d) => `<a class="card reg" href="${href}"><div class="ic k${tone}">${ic}</div><div><b>${t}</b><small>${d}</small></div></a>`;
   const yearChip = s.current_year ? `<span class="yr"><i></i>العام الدراسي: ${esc(s.current_year)}</span>` : c.isAdmin ? '<a class="yr" href="school.html#years">إنشاء العام الدراسي الأول ←</a>' : '<span class="yr">لا يوجد عام دراسي حالي</span>';
   m.innerHTML = `${s.current_year || !c.isAdmin ? "" : '<div class="alert"><a href="school.html#years">إنشاء العام الدراسي الأول ←</a></div>'}
     <div class="grid">${kpi(IC.users, s.personnel_total, "إجمالي المنسوبين", 0)}${kpi(IC.cap, s.students_total, "المتعلمون المنتظمون", 1)}${kpi(IC.grid, s.classes_total, "الفصول الدراسية", 2)}${kpi(IC.building, s.facilities_total, "المرافق", 3)}${kpi(IC.seat, s.capacity, "الطاقة الاستيعابية", 4)}</div>
-    <h3 class="sec">إحصاءات أساسية</h3><div class="grid">
-      <div class="card brk"><b>المنسوبون حسب المسمى الوظيفي</b>${lst(byTitle, same(byTitle))}</div>
-      <div class="card brk"><b>المتعلمون والفصول حسب المرحلة</b>${gradeRows}</div>
-      <div class="card brk"><b>المرافق حسب النوع</b>${lst(s.facilities_by_type, FT)}</div></div>
     <h3 class="sec">بيانات المدرسة</h3><div class="card"><div class="fg">
       ${[["الرقم الوزاري", p.ministry_no], ["المرحلة", p.stage], ["نوع المدرسة", [p.school_type, L.gender[p.gender]].filter(Boolean).join(" · ")], ["الإدارة التعليمية", p.education_department], ["مكتب التعليم", p.education_office], ["الموقع", [p.city, p.district].filter(Boolean).join("، ")]].map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div>
     <h3 class="sec">السجلات الأربعة</h3><div class="grid">
       ${reg("school.html", IC.school, 0, "المدرسة", "الملف المركزي والقيادة والأعوام والمراحل والفصول.")}
       ${c.can("personnel:view") || c.can("users:manage") ? reg("staff.html", IC.users, 3, "المنسوبون", "الهيئة التعليمية والإدارية والمساندة.") : reg("profile.html", IC.users, 3, "حسابي", "بياناتي وتغيير كلمة المرور.")}
       ${c.can("students:view") ? reg("students.html", IC.cap, 1, "المتعلمون", "الهوية والتسجيل لكل عام وأولياء الأمور.") : ""}
-      ${reg("facilities.html", IC.building, 4, "المرافق", "الهوية الثابتة والموقع والمسؤولون والتجهيزات.")}</div>`;
+      ${reg("facilities.html", IC.building, 4, "المرافق", "الهوية الثابتة والموقع والمسؤولون والتجهيزات.")}</div>    <h3 class="sec">إحصاءات أساسية</h3><div class="grid st3g">
+      ${stCard(IC.users, "المنسوبون حسب المسمى الوظيفي", s.personnel_total, lst(byTitle, same(byTitle)))}
+      ${stCard(IC.cap, "المتعلمون والفصول حسب المرحلة", s.students_total, gradeRows)}
+      ${stCard(IC.building, "المرافق حسب النوع", s.facilities_total, lst(s.facilities_by_type, FT))}</div>
+`;
 });
