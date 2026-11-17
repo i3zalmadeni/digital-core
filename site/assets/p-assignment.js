@@ -18,7 +18,11 @@ boot("assignment.html", async (m, c) => {
   // نموذج الإنشاء والتعديل (التعديل بعد الإصدار ينشئ إصداراً جديداً)
   async function form(a) {
     const v = a ? ASG.latest(a) : null, tQ = await sb.from("assignment_titles").select("*").eq("is_active", true).order("sort_order");
-    const T = tQ.data || []; let atts = [...(v?.attachments || [])];
+    const T = tQ.data || [];
+    // الدليل التنظيمي (للتعبئة التلقائية) والعام الدراسي الحالي (للتواريخ الافتراضية)
+    const [gjQ, gaQ, gdQ, yrQ] = a ? [{}, {}, {}, {}] : await Promise.all([sb.from("guide_jobs").select("id,code,title,subtitle,objective").order("sort_order"), sb.from("guide_assignments").select("id,title,full_title,objective").order("sort_order"),
+      sb.from("guide_duties").select("job_id,assignment_id,seq,body").order("seq"), sb.from("academic_years").select("starts_on,ends_on").eq("status", "current").maybeSingle()]);
+    const GJ = gjQ.data || [], GA = gaQ.data || [], GD = gdQ.data || [], YR = yrQ.data || null;
     const newVer = a && v?.issued_at, pre = qs("staff") || "";
     m.innerHTML = head(a ? (newVer ? `تحديث التكليف ${a.assignment_no}` : `تعديل مسودة ${a.assignment_no}`) : "تكليف جديد", newVer ? "سيُنشأ إصدار جديد ويُحفظ السابق كاملاً، ولا يسري إلا بعد اطلاع الموظف وإقراره." : "احفظه مسودة ثم أصدره ليصل إشعاراً للموظف.") +
       `<form class="card" id="f"><div class="fg">
@@ -26,6 +30,7 @@ boot("assignment.html", async (m, c) => {
         <div id="nw"><label>طبيعة التكليف الفرعي</label><select id="nt">${opts(ASG.nature, a?.nature || "extra_task")}</select></div>
         <div><label>الموظف المكلف</label><select id="st" ${a ? "disabled" : ""} required>${staffOpts(a?.staff_id || pre, true)}</select></div>
         <div><label>المسمى الوظيفي الأساسي</label><input id="jt" disabled></div>
+        ${a ? "" : `<div class="full"><label id="gl">الوظيفة من الدليل التنظيمي</label><select id="gp"></select><small class="sub">عند الاختيار يُعبَّأ المسمى والوصف والأهداف والمهام تلقائيًا من الدليل، ويمكنك تعديلها قبل الحفظ.</small></div>`}
         <div class="full"><label>مسمى التكليف</label><input id="ti" list="tl" value="${esc(v?.title || "")}" required><datalist id="tl">${T.map((t) => `<option value="${esc(t.name)}" data-n="${t.nature}">`).join("")}</datalist></div>
         <div class="full"><label>وصف التكليف وأهدافه</label><textarea id="ds" rows="3">${esc(v?.description || "")}</textarea></div>
         <div class="full"><label>المهام والمسؤوليات (كل مهمة في سطر)</label><textarea id="tk" rows="7">${esc(v?.tasks || "")}</textarea></div>
@@ -36,9 +41,18 @@ boot("assignment.html", async (m, c) => {
         <div class="full"><label>المرفقات والقرارات والمستندات</label>${a ? `<input type="file" id="fl" accept=".pdf,.png,.jpg,.jpeg,.docx" style="width:auto"><div id="al"></div>` : '<p class="sub" style="margin:0">تُرفع المرفقات بعد حفظ المسودة الأولى.</p>'}</div>
       </div><p class="err" id="fe" role="alert"></p>
       <div class="acts mt"><button class="btn" id="sv" type="submit">${newVer ? "حفظ كإصدار جديد" : "حفظ كمسودة"}</button><a class="btn sec" href="${a ? "assignment.html?id=" + a.id : "assignments.html"}">إلغاء</a></div></form>`;
-    const sync = () => { const p = $("#kd").value === "primary"; $("#nw").style.display = p ? "none" : ""; const s = ST.find((x) => x.id === $("#st").value); $("#jt").value = s?.job_titles?.name_ar || "";
-      if (p && s && !$("#ti").value) $("#ti").value = s.job_titles?.name_ar || ""; };
-    $("#kd").onchange = sync; $("#st").onchange = sync; sync();
+    const gp = $("#gp"), dutyLines = (key, id) => GD.filter((d) => d[key] === id).sort((x, y) => x.seq - y.seq).map((d) => d.body.replace(/\s+/g, " ").trim()).join("\n");
+    const gOpts = () => { const p = $("#kd").value === "primary"; $("#gl").textContent = p ? "الوظيفة من الدليل التنظيمي" : "التكليف أو اللجنة من الدليل التنظيمي";
+      gp.innerHTML = '<option value="">— بدون تعبئة تلقائية —</option>' + (p ? GJ.map((g) => `<option value="${g.code}">${esc(g.title)}</option>`) : GA.map((g) => `<option value="${g.id}">${esc(g.title)}</option>`)).join(""); };
+    const gFill = () => { if (!gp || !gp.value) return; const p = $("#kd").value === "primary";
+      if (p) { const g = GJ.find((x) => x.code === gp.value); if (!g) return; $("#ti").value = g.title; $("#ds").value = [g.subtitle, g.objective].filter(Boolean).join("\n\n"); $("#tk").value = dutyLines("job_id", g.id); }
+      else { const g = GA.find((x) => x.id === gp.value); if (!g) return; $("#ti").value = g.title; $("#ds").value = [g.full_title && g.full_title !== g.title ? g.full_title : "", g.objective].filter(Boolean).join("\n\n"); $("#tk").value = dutyLines("assignment_id", g.id); } };
+    const sync = (fromStaff) => { const p = $("#kd").value === "primary"; $("#nw").style.display = p ? "none" : ""; const s = ST.find((x) => x.id === $("#st").value); $("#jt").value = s?.job_titles?.name_ar || "";
+      if (p && s && !$("#ti").value) $("#ti").value = s.job_titles?.name_ar || "";
+      // اختيار وظيفة الموظف من الدليل تلقائيًا إن وُجدت مطابقة لها
+      if (gp && fromStaff === true && p && s && GJ.some((g) => g.code === s.job_title)) { gp.value = s.job_title; gFill(); } };
+    if (gp) { gOpts(); gp.onchange = gFill; if (YR) { $("#sd").value = $("#sd").value || YR.starts_on; $("#ed").value = $("#ed").value || YR.ends_on; } }
+    $("#kd").onchange = () => { if (gp) { gOpts(); } sync(true); }; $("#st").onchange = () => sync(true); sync();
     $("#ti").onchange = () => { const t = T.find((x) => x.name === $("#ti").value); if (t) $("#nt").value = t.nature; };
     const paintA = async () => { const h = $("#al"); if (!h) return; h.innerHTML = (await Promise.all(atts.map(async (x, i) => { const u = (await sb.storage.from("assignment-files").createSignedUrl(x.path, 3600)).data?.signedUrl; return `<div class="row2 item"><a href="${esc(u || "#")}" target="_blank" rel="noopener">${esc(x.name)}</a><button type="button" class="btn sm bad" data-rm="${i}">إزالة</button></div>`; }))).join("");
       h.querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { atts.splice(+b.dataset.rm, 1); paintA(); })); };
