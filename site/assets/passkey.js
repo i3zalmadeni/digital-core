@@ -16,11 +16,11 @@
       r = await fetch(FN + path, { method: "POST", headers: { "content-type": "application/json", apikey: APP_CONFIG.supabaseKey, authorization: "Bearer " + (token || APP_CONFIG.supabaseKey) }, body: JSON.stringify(body || {}) });
     } catch (_) { throw new Error("تعذر الاتصال بالخادم، حاول مرة أخرى."); }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(ERR[j.error] || "تعذر إتمام العملية.");
+    if (!r.ok) { const er = new Error(ERR[j.error] || "تعذر إتمام العملية."); er.code = j.error; throw er; }
     return j;
   }
   const domErr = (e) => e && e.name === "NotAllowedError" ? "أُلغيت العملية أو لم يتعرف الجهاز على الوجه." : e && e.name === "InvalidStateError" ? "هذا الجهاز مفعّل مسبقاً." : (e && e.message) || "تعذر إتمام العملية.";
-  const FLAG = "dc_pk_device", DECL = "dc_pk_declined";
+  const FLAG = "dc_pk_device", DECL = "dc_pk_declined", CRED = "dc_pk_cred";
   window.PK = {
     // الجهاز يملك تحققاً بيومترياً (Face ID، Windows Hello، فتح الوجه…) والصفحة في سياق آمن وغير مضمّنة في إطار
     async available() {
@@ -29,6 +29,9 @@
         return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
       } catch (_) { return false; }
     },
+    // مفتاح هذا الجهاز: يُستعمل لطلب بصمة الوجه مباشرة دون قائمة اختيار مفاتيح الدخول أو الأمان
+    hasCred: () => { try { return !!localStorage.getItem(CRED); } catch (_) { return false; } },
+    forget() { try { localStorage.removeItem(FLAG); localStorage.removeItem(CRED); } catch (_) {} },
     enrolledHere: () => { try { return localStorage.getItem(FLAG) === "1"; } catch (_) { return false; } },
     declined: () => { try { return localStorage.getItem(DECL) === "1"; } catch (_) { return false; } },
     decline() { try { localStorage.setItem(DECL, "1"); } catch (_) {} },
@@ -43,17 +46,23 @@
       const res = c.response;
       await call("/passkey/register-verify", { label, response: { id: c.id, rawId: toS(c.rawId), type: c.type, authenticatorAttachment: c.authenticatorAttachment, clientExtensionResults: c.getClientExtensionResults(),
         response: { clientDataJSON: toS(res.clientDataJSON), attestationObject: toS(res.attestationObject), transports: res.getTransports ? res.getTransports() : [] } } }, session.access_token);
-      try { localStorage.setItem(FLAG, "1"); localStorage.removeItem(DECL); } catch (_) {}
+      try { localStorage.setItem(FLAG, "1"); localStorage.setItem(CRED, c.id); localStorage.removeItem(DECL); } catch (_) {}
     },
     // يعيد true عند نجاح الدخول (الجلسة تُنشأ في supabase-js ثم تُشارَك بين الأنظمة)
     async login(sb) {
       const o = await call("/passkey/login-options", {});
-      o.challenge = toB(o.challenge); o.allowCredentials = [];
+      o.challenge = toB(o.challenge);
+      let mine = null; try { mine = localStorage.getItem(CRED); } catch (_) {}
+      // جهاز مفعّل: نحدد مفتاحه الداخلي فيظهر طلب الوجه مباشرة. وإلا يُترك الاكتشاف التلقائي.
+      o.allowCredentials = mine ? [{ type: "public-key", id: toB(mine), transports: ["internal"] }] : [];
+      o.hints = ["client-device"];
       let a;
       try { a = await navigator.credentials.get({ publicKey: o }); } catch (e) { throw new Error(domErr(e)); }
       const res = a.response;
-      const v = await call("/passkey/login-verify", { response: { id: a.id, rawId: toS(a.rawId), type: a.type, authenticatorAttachment: a.authenticatorAttachment, clientExtensionResults: a.getClientExtensionResults(),
-        response: { clientDataJSON: toS(res.clientDataJSON), authenticatorData: toS(res.authenticatorData), signature: toS(res.signature), userHandle: res.userHandle ? toS(res.userHandle) : undefined } } });
+      let v;
+      try { v = await call("/passkey/login-verify", { response: { id: a.id, rawId: toS(a.rawId), type: a.type, authenticatorAttachment: a.authenticatorAttachment, clientExtensionResults: a.getClientExtensionResults(),
+        response: { clientDataJSON: toS(res.clientDataJSON), authenticatorData: toS(res.authenticatorData), signature: toS(res.signature), userHandle: res.userHandle ? toS(res.userHandle) : undefined } } }); }
+      catch (e) { if (e.code === "unknown_passkey") this.forget(); throw e; }
       const { error } = await sb.auth.verifyOtp({ token_hash: v.token_hash, type: "magiclink" });
       if (error) throw new Error(ERR.session_failed);
       try { localStorage.setItem(FLAG, "1"); } catch (_) {}

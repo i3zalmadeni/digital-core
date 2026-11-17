@@ -56,7 +56,7 @@ boot("profile.html", async (m, c) => {
   async function pkList() {
     const { data } = await sb.from("passkeys").select("id,device_label,created_at,last_used_at").order("created_at");
     g("#pkl").innerHTML = (data || []).length ? `<div class="tw"><table><thead><tr><th>الجهاز</th><th>أُضيف</th><th>آخر دخول</th><th></th></tr></thead><tbody>${data.map((k) => `<tr><td>${esc(k.device_label || "جهاز")}</td><td>${fmtT(k.created_at)}</td><td>${k.last_used_at ? fmtT(k.last_used_at) : "—"}</td><td><button class="btn ghost" data-del="${k.id}" type="button">حذف</button></td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا توجد أجهزة مفعّلة بعد.</p>';
-    g("#pkl").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => { if (!confirm("حذف هذا الجهاز من الدخول بالبصمة؟")) return; await sb.from("passkeys").delete().eq("id", b.dataset.del); try { localStorage.removeItem("dc_pk_device"); } catch (_) {} pkList(); }));
+    g("#pkl").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => { if (!confirm("حذف هذا الجهاز من الدخول بالبصمة؟")) return; await sb.from("passkeys").delete().eq("id", b.dataset.del); PK.forget(); pkList(); }));
   }
   g("#pka").onclick = async () => {
     const b = g("#pka"), er = g("#pke"); er.textContent = ""; b.disabled = true;
