@@ -133,4 +133,4 @@ boot("guide.html", async (m, c) => {
     [["job", J], ["assignment", A]].flatMap(([t, rs]) => rs.flatMap((r) => dutiesOf(t, r.id).map((d, i) => [t === "job" ? "وظيفة" : KIND[r.kind], r.title, i + 1, d.body]))));
 
   paint();
-}, { title: "دليل الوظائف والتكليفات", desc: "المسميات الوظيفية واللجان وفرق العمل ومهامها حسب الدليل التنظيمي" });
+}, { title: "دليل الوظائف والتكليفات", desc: "المسميات الوظيفية واللجان وفرق العمل ومهامها حسب الدليل التنظيمي", admin: true });
