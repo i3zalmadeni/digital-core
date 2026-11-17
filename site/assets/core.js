@@ -82,10 +82,11 @@ async function showHistory(table, id, title) {
   md.el.querySelector("#cx").onclick = md.close;
 }
 
+ICONS.assign = '<path d="M9 3h6l1 2h3v16H5V5h3zM9 13l2 2 4-4"/>';
 ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5V5.5M8 7h8M8 11h6"/>';
 const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["teaching.html", "إسناد التدريس", "book", "معلم كل مادة في كل فصل للعام الحالي", "school:view"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
-  ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
+  ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html"); return; }
@@ -109,10 +110,10 @@ async function boot(page, render, o = {}) {
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
   const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
-  if (staffOnly && page !== "profile.html" && page !== "inbox.html") { location.replace("profile.html"); return; }
+  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
-  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
@@ -134,9 +135,12 @@ async function boot(page, render, o = {}) {
     const N = [];
     const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();
     if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "profile.html#pw", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
+    const { data: ap } = await sb.from("assignments").select("id,title,assignment_no,status,assignment_versions(version_no,issued_at,ack_at)").eq("staff_id", me.id).eq("status", "issued");
+    (ap || []).forEach((x) => { const v = (x.assignment_versions || []).filter((y) => y.issued_at).sort((p, q) => q.version_no - p.version_no)[0];
+      if (v && !v.ack_at) N.push({ id: "asg:" + x.id + ":" + v.version_no, t: v.issued_at, tone: "warn", icon: "file", href: "assignment.html?id=" + x.id, title: v.version_no > 1 ? "تحديث على تكليفك بانتظار إقرارك" : "تكليف جديد بانتظار اطلاعك وإقرارك", body: x.title }); });
     if (isAdmin) {
       const { data: L } = await sb.from("audit_logs").select("id,actor_id,action,table_name,created_at").neq("actor_id", session.user.id).not("table_name", "like", "mirat.%").order("created_at", { ascending: false }).limit(400);
-      const T = { students: "المتعلمين", student_enrollments: "قيود المتعلمين", student_private: "بيانات تواصل المتعلمين", student_guardians: "أولياء الأمور", guardians: "أولياء الأمور", staff_members: "المنسوبين", staff_private: "البيانات الخاصة للمنسوبين", staff_roles: "الأدوار", staff_permissions: "الصلاحيات", teaching_assignments: "إسناد التدريس", subjects: "المواد الدراسية", facilities: "المرافق", facility_equipment: "تجهيزات المرافق", class_sections: "الفصول", academic_years: "الأعوام الدراسية", school_profile: "بيانات المدرسة", school_leadership: "المواقع القيادية", systems: "الأنظمة" };
+      const T = { students: "المتعلمين", student_enrollments: "قيود المتعلمين", student_private: "بيانات تواصل المتعلمين", student_guardians: "أولياء الأمور", guardians: "أولياء الأمور", staff_members: "المنسوبين", staff_private: "البيانات الخاصة للمنسوبين", staff_roles: "الأدوار", staff_permissions: "الصلاحيات", teaching_assignments: "إسناد التدريس", assignments: "التكليفات", assignment_versions: "إصدارات التكليفات", subjects: "المواد الدراسية", facilities: "المرافق", facility_equipment: "تجهيزات المرافق", class_sections: "الفصول", academic_years: "الأعوام الدراسية", school_profile: "بيانات المدرسة", school_leadership: "المواقع القيادية", systems: "الأنظمة" };
       const AC = { INSERT: ["إضافة", "ok", "inbox"], UPDATE: ["تعديل", "info", "file"], DELETE: ["حذف", "bad", "x"] };
       const rows = (L || []).filter((r) => T[r.table_name] && AC[r.action]);
       const ids = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))];
