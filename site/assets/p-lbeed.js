@@ -29,8 +29,9 @@ async function lbeedPage(m) {
   const av = (name, sys) => { const p = people[name]; const c = sys ? COL[sys] : hue(name)[0]; return `<span class="lb-av" style="--c:${c}">${p && p.photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", p.photo))}">` : esc(mono(name))}</span>`; };
 
   m.innerHTML = `<div class="lb">
-    <section class="lb-hero" aria-label="نبض لبيد"><div class="lb-beat" id="lbBeat" aria-hidden="true"></div><div class="in"><div class="row"><div class="ttl"><h2>يحدث في لبيد</h2><p class="tag">لبيد تتحرك، وإنجازاتها تُرى</p></div>
-      <div class="dt"><b id="lbH"></b><span id="lbG"></span><span class="clk" id="lbClk"></span><span class="live" id="lbLive"><i></i><span id="lbLiveT">جارٍ التحميل</span></span><span id="lbU"></span></div></div></div></section>
+    <section class="lb-hero" aria-label="نبض لبيد"><div class="in"><div class="row"><div class="ttl"><h2>يحدث في لبيد</h2><p class="tag">لبيد تتحرك، وإنجازاتها تُرى</p></div>
+      <div class="lb-beat" id="lbBeat" aria-hidden="true"></div>
+      <div class="dtm"><b id="lbH"></b><span id="lbG"></span><span class="clk" id="lbClk"></span><span class="live" id="lbLive"><i></i><span id="lbLiveT">جارٍ التحميل</span></span><span id="lbU"></span></div></div></div></section>
     <nav class="lb-tabs" aria-label="عروض النافذة"><div class="in"><button data-v="ov" class="on" type="button">نظرة عامة</button><button data-v="log" type="button">سجل التحديثات</button><span class="sp"></span><button class="rf" id="lbR" type="button">${ico("refresh")} تحديث</button></div></nav>
     <div class="lb-main"><div id="lbBody"></div>
     <p style="color:#6a8696;font-size:.82rem;margin:30px 0 6px">نافذة قراءة فقط تجمع ما تسجله أنظمة المدرسة السبعة من مصادرها الأصلية دون نسخ أو تعديل، وتحترم صلاحيات كل نظام. لا تُعرض فيها حالات فردية للطلاب، وتظهر الصور المنشورة فقط.</p></div></div>`;
@@ -168,7 +169,8 @@ async function lbeedPage(m) {
   async function ensure() { const wk = ws0(CAL.sel); await Promise.all([MC[CAL.mon] ? 0 : rpc("lb_month", { p_month: CAL.mon }).then((r) => (MC[CAL.mon] = r)), WC[wk] ? 0 : rpc("lb_week", { p_from: wk }).then((r) => (WC[wk] = r))]); }
   function evRows(e) { const when = e.starts_at ? `${fmt(e.day)} · ${tm(e.starts_at)}` : e.from ? `${fmt(e.day)} · ${tm2(e.from)} – ${tm2(e.to)}` : e.until && e.until !== e.day ? `من ${fmt(e.day)} إلى ${fmt(e.until)}` : fmt(e.day);
     return [["الموعد", `${dayName(e.day)} ${when}`], ["النظام", SYS[e.sys]], ["الفريق أو الجهة", e.team], ["المكان", e.place || e.location], ["المسؤول", e.owner], ["الفئة المستفيدة", e.beneficiary], ["التوثيق", e.kind === "meeting" && e.doc ? (DOC[e.doc] || [""])[0] : null]].filter((r) => r[1]); }
-  function setSel(host, k) { CAL.sel = k; CAL.open = null; if (k.slice(0, 7) !== CAL.mon.slice(0, 7)) CAL.mon = k.slice(0, 8) + "01"; paint(host, true); }
+  const wkd = (k) => { const w = new Date(k + "T12:00:00").getDay(); return w === 5 ? addDays(k, 2) : w === 6 ? addDays(k, 1) : k; };
+  function setSel(host, k) { k = wkd(k); CAL.sel = k; CAL.open = null; if (k.slice(0, 7) !== CAL.mon.slice(0, 7)) CAL.mon = k.slice(0, 8) + "01"; paint(host, true); }
   async function paint(host, anim) {
     host.classList.add("ld"); try { await ensure(); } catch (e) { host.classList.remove("ld"); return; } host.classList.remove("ld");
     const td = iso(nowRy()), all = dayEv(CAL.sel), cnt = {}; all.forEach((e) => (cnt[kk(e)] = (cnt[kk(e)] || 0) + 1));
@@ -176,10 +178,10 @@ async function lbeedPage(m) {
     const ev = all.filter((e) => CAL.kf === "all" || kk(e) === CAL.kf).sort((a, b) => (minsOf(a) ?? -1) - (minsOf(b) ?? -1));
     const dots = {}; ((MC[CAL.mon] || {}).events || []).forEach((e) => { const o = (dots[e.day] = dots[e.day] || { n: 0, s: new Set() }); o.n++; o.s.add(e.sys); });
     const first = new Date(CAL.mon + "T12:00:00"), pad = first.getDay(), dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-    const cells = []; for (let i = 0; i < pad; i++) cells.push(`<span></span>`);
-    for (let d = 1; d <= dim; d++) { const k = CAL.mon.slice(0, 8) + String(d).padStart(2, "0"), o = dots[k], dw = new Date(k + "T12:00:00").getDay(); cells.push(`<button type="button" data-d="${k}" style="--h:${o ? Math.min(o.n, 6) / 6 : 0}" class="${k === td ? "today" : ""} ${k === CAL.sel ? "sel" : ""} ${dw >= 5 ? "we" : ""}" aria-label="${esc(dayName(k))} ${d}${o ? "، " + o.n + " أحداث" : ""}" ${k === CAL.sel ? 'aria-current="date"' : ""}><b>${num(d)}</b>${o ? `<i>${[...o.s].slice(0, 3).map((x) => `<u style="--c:${COL[x]}"></u>`).join("")}</i>` : ""}</button>`); }
+    const cells = []; for (let i = 0; i < (pad >= 5 ? 0 : pad); i++) cells.push(`<span></span>`);
+    for (let d = 1; d <= dim; d++) { if (new Date(CAL.mon.slice(0, 8) + String(d).padStart(2, "0") + "T12:00:00").getDay() >= 5) continue; const k = CAL.mon.slice(0, 8) + String(d).padStart(2, "0"), o = dots[k], dw = new Date(k + "T12:00:00").getDay(); cells.push(`<button type="button" data-d="${k}" style="--h:${o ? Math.min(o.n, 6) / 6 : 0}" class="${k === td ? "today" : ""} ${k === CAL.sel ? "sel" : ""} ${dw >= 5 ? "we" : ""}" aria-label="${esc(dayName(k))} ${d}${o ? "، " + o.n + " أحداث" : ""}" ${k === CAL.sel ? 'aria-current="date"' : ""}><b>${num(d)}</b>${o ? `<i>${[...o.s].slice(0, 3).map((x) => `<u style="--c:${COL[x]}"></u>`).join("")}</i>` : ""}</button>`); }
     const wd = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"], title = first.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" });
-    const wk0 = ws0(CAL.sel), strip = Array.from({ length: 7 }, (_, i) => addDays(wk0, i)).map((k) => { const n = dayEv(k).length; return `<button type="button" data-d="${k}" class="${k === CAL.sel ? "sel" : ""} ${k === td ? "today" : ""}"><span>${wd[new Date(k + "T12:00:00").getDay()]}</span><b>${num(new Date(k + "T12:00:00").getDate())}</b><i>${n ? num(n) : ""}</i></button>`; }).join("");
+    const wk0 = ws0(CAL.sel), strip = Array.from({ length: 5 }, (_, i) => addDays(wk0, i)).map((k) => { const n = dayEv(k).length; return `<button type="button" data-d="${k}" class="${k === CAL.sel ? "sel" : ""} ${k === td ? "today" : ""}"><span>${wd[new Date(k + "T12:00:00").getDay()]}</span><b>${num(new Date(k + "T12:00:00").getDate())}</b><i>${n ? num(n) : ""}</i></button>`; }).join("");
     const nowM = (() => { const n = nowRy(); return n.getHours() * 60 + n.getMinutes(); })(); let nowDone = CAL.sel !== td;
     const line = (e, i) => { const st = minsOf(e), mm = st == null ? "" : tm2(`${String(Math.floor(st / 60)).padStart(2, "0")}:${String(st % 60).padStart(2, "0")}`), open = CAL.open === i, rows = evRows(e), done = e.state === "ended" || (CAL.sel === td && st != null && e.kind !== "program" && !e.cont && (e.state == null) && false);
       let mark = ""; if (!nowDone && st != null && st > nowM) { nowDone = true; mark = `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>`; }
@@ -188,7 +190,7 @@ async function lbeedPage(m) {
         <div class="eb"><div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><a class="go" href="${esc(e.link || "#")}">فتح في ${esc(SYS[e.sys])} ${ic("up")}</a></div></div></article></div>`; };
     const tl = ev.map(line).join("") + (!nowDone && ev.length ? `<div class="nowm"><span>الآن · ${tm(new Date())}</span></div>` : "");
     host.innerHTML = `<div class="lb-cal"><div class="lb-p lb-mcal"><div class="lb-mh"><button type="button" id="mP" aria-label="الشهر السابق">${ic("chev")}</button><b>${esc(title)}</b><button type="button" id="mN" aria-label="الشهر التالي">${ic("chev")}</button></div>
-        <div class="lb-mg">${["ح", "ن", "ث", "ر", "خ", "ج", "س"].map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div><button type="button" class="tdb" id="mT">العودة إلى اليوم</button>
+        <div class="lb-mg">${["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"].map((x) => `<span class="w">${x}</span>`).join("")}${cells.join("")}</div><button type="button" class="tdb" id="mT">العودة إلى اليوم</button>
         <div class="lg">${Object.keys(SYS).filter((k) => ["community", "saas", "plans", "booking"].includes(k)).map((k) => `<span><u style="--c:${COL[k]}"></u>${esc(SYS[k])}</span>`).join("")}</div></div>
       <div class="lb-p lb-ag ${anim ? "an" : ""}"><div class="agh"><div class="big"><b>${num(new Date(CAL.sel + "T12:00:00").getDate())}</b><span>${CAL.sel === td ? "اليوم" : esc(dayName(CAL.sel))}</span></div><div class="meta"><h4>${esc(dayName(CAL.sel))}</h4><p>${esc(hijri(new Date(CAL.sel + "T12:00:00")))}</p></div><div class="cn"><b>${num(all.length)}</b><span>حدثاً</span></div></div>
         <div class="wks" role="group" aria-label="أيام الأسبوع"><button type="button" id="wP" aria-label="الأسبوع السابق">${ic("chev")}</button>${strip}<button type="button" id="wN" aria-label="الأسبوع التالي">${ic("chev")}</button></div>
@@ -197,35 +199,26 @@ async function lbeedPage(m) {
     host.querySelectorAll(".lb-mg [data-d],.wks [data-d]").forEach((b) => (b.onclick = () => setSel(host, b.dataset.d)));
     host.querySelector("#mP").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() - 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
     host.querySelector("#mN").onclick = () => { const d = new Date(CAL.mon + "T12:00:00"); d.setMonth(d.getMonth() + 1); CAL.mon = iso(d); setSel(host, CAL.mon); };
-    host.querySelector("#mT").onclick = () => { CAL.mon = td.slice(0, 8) + "01"; setSel(host, td); };
+    host.querySelector("#mT").onclick = () => { const t = wkd(iso(nowRy())); CAL.mon = t.slice(0, 8) + "01"; setSel(host, t); };
     host.querySelector("#wP").onclick = () => setSel(host, addDays(CAL.sel, -7)); host.querySelector("#wN").onclick = () => setSel(host, addDays(CAL.sel, 7));
     host.querySelectorAll(".lb-fc button").forEach((b) => (b.onclick = () => { CAL.kf = b.dataset.k; CAL.open = null; paint(host, true); }));
     host.querySelectorAll(".eh").forEach((b) => (b.onclick = () => { const i = +b.dataset.k, was = CAL.open === i; CAL.open = was ? null : i; host.querySelectorAll(".ev").forEach((x, n) => { const o = x.querySelector(".eh"); const on = !was && +o.dataset.k === i; x.classList.toggle("open", on); o.setAttribute("aria-expanded", on); }); }));
   }
-  function calWidget(host) { const td = iso(nowRy()); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01"; MC = {}; WC = {}; return paint(host, false); }
+  function calWidget(host) { const td = wkd(iso(nowRy())); if (!CAL.sel) CAL.sel = td; if (!CAL.mon) CAL.mon = CAL.sel.slice(0, 8) + "01"; MC = {}; WC = {}; return paint(host, false); }
 
-  /* ----- بطاقة الانضباط ----- */
+  /* ----- بطاقة الانضباط (داكنة) ----- */
   function disCard(at) {
-    const head = `<div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>الانضباط اليوم</h4><p>رصد الحضور والغياب من نظام انضباطي</p></div><a href="/indibati/dashboard.html">فتح انضباطي</a></div>`;
-    if (!at.recorded) return `<section class="lb-p lb-dis">${head}${em("لم يُرصد الحضور اليوم بعد. تظهر النسب هنا فور رصد أول فصل.")}</section>`;
-    const P = Math.round(at.present_pct || 0), A = Math.round(at.absent_pct || 0), R = 15.9155, ex = at.absent_excused || 0, un = at.absent_unexcused || 0, tot = Math.max(1, at.students_in_recorded || 1);
-    const cov = at.sections_total ? Math.round((100 * at.sections_recorded) / at.sections_total) : 0;
-    return `<section class="lb-p lb-dis">${head}<div class="ds"><div class="rg" role="img" aria-label="الحضور ${P}% والغياب ${A}%"><svg viewBox="0 0 42 42"><circle class="tk" cx="21" cy="21" r="${R}"/><circle class="pr" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${P}"/><circle class="ab" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${A};--o:${-P}"/></svg><div class="ct"><b class="cu" data-cu="${P}" data-sfx="%">0</b><span>نسبة الحضور</span></div></div>
-      <div class="ks"><div class="k g"><b class="cu" data-cu="${at.present || 0}">0</b><span>الطلاب الحضور</span><small>من ${num(at.students_in_recorded)} طالباً في الفصول المرصودة</small></div>
-      <div class="k r"><b class="cu" data-cu="${A}" data-sfx="%">0</b><span>نسبة الغياب</span><small>${num(at.absent)} غائباً · ${num(ex)} بعذر · ${num(un)} بدون عذر</small></div>
-      <div class="k y"><b class="cu" data-cu="${at.late || 0}">0</b><span>المتأخرون</span><small>سجلات التأخر اليوم</small></div>
-      <div class="k b"><b class="cu" data-cu="${cov}" data-sfx="%">0</b><span>تغطية الرصد</span><small>${num(at.sections_recorded)} من ${num(at.sections_total)} فصلاً</small></div></div></div>
-      <div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#24895a"></i>حاضر</span><span><i style="background:#f0b34a"></i>غائب بعذر</span><span><i style="background:#e0644f"></i>غائب بدون عذر</span></div></section>`;
-  }
-
-  /* ----- نجوم قيمي: أفضل 10 بشريط متحرك ----- */
-  function topStrip(top, link) {
-    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>نجوم لبيد · قيمي</h4><p>أفضل ${num(top.length)} طلاب في لوحة الشرف حسب النقاط</p></div><a href="${esc(link)}">لوحة الشرف</a></div>`;
-    if (!top.length) return `<section class="lb-p lb-top">${head}${em("لا بيانات في لوحة الشرف بعد.")}</section>`;
-    const mx = Math.max(1, ...top.map((x) => x.balance));
-    const one = (x) => `<a class="tp r${x.rank <= 3 ? x.rank : 0}" href="${esc(link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(x.rank)}</span>${x.rank === 1 ? `<span class="cr">${ic("crown")}</span>` : ""}<span class="ph">${esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.grade || "")}${x.section ? " · " + esc(x.section) : ""}</small><span class="pt"><i style="width:${(100 * x.balance) / mx}%"></i></span><em>${num(x.balance)} نقطة</em></a>`;
-    const set = top.map(one).join("");
-    return `<section class="lb-p lb-top" aria-label="أفضل 10 طلاب">${head}<div class="vp"><div class="tr" style="animation-duration:${Math.max(40, top.length * 7)}s">${set}${set}</div></div></section>`;
+    const head = `<div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>الانضباط اليوم</h4><p>الحضور والغياب والتأخر من نظام انضباطي</p></div><a href="/indibati/dashboard.html">فتح انضباطي</a></div>`;
+    if (!at.recorded) return `<section class="lb-p dkc lb-dis">${head}<div class="lb-em">لم يُرصد الحضور اليوم بعد. تظهر النسب هنا فور رصد أول فصل.</div></section>`;
+    const P = Math.round(at.present_pct || 0), A = Math.round(at.absent_pct || 0), R = 15.9155, ex = at.absent_excused || 0, un = at.absent_unexcused || 0, tot = Math.max(1, at.students_in_recorded || 1), st = at.sections_total || 0, sr = at.sections_recorded || 0;
+    const cov = st ? Math.round((100 * sr) / st) : 0;
+    return `<section class="lb-p dkc lb-dis">${head}<div class="ds"><div class="rg" role="img" aria-label="الحضور ${P}% والغياب ${A}%"><svg viewBox="0 0 42 42"><circle class="tk" cx="21" cy="21" r="${R}"/><circle class="pr" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${P}"/><circle class="ab" cx="21" cy="21" r="${R}" pathLength="100" style="--p:${A};--o:${-P}"/></svg><div class="ct"><b class="cu" data-cu="${P}" data-sfx="%">0</b><span>نسبة الحضور</span></div></div>
+      <div class="ks"><div class="k g"><b class="cu" data-cu="${at.present || 0}">0</b><span>الطلاب الحضور</span><small>من ${num(at.students_in_recorded)} طالباً</small></div>
+      <div class="k r"><b class="cu" data-cu="${A}" data-sfx="%">0</b><span>نسبة الغياب</span><small>${num(at.absent)} غائباً</small></div>
+      <div class="k y"><b class="cu" data-cu="${ex}">0</b><span>غياب بعذر</span><small>${num(un)} بدون عذر</small></div>
+      <div class="k b"><b class="cu" data-cu="${at.late || 0}">0</b><span>المتأخرون</span><small>سجلات التأخر اليوم</small></div></div></div>
+      <div class="ft2"><div class="cv"><span>تغطية الرصد: ${num(sr)} من ${num(st)} فصلاً (${num(cov)}%)</span><div class="dots">${Array.from({ length: st }, (_, i) => `<i class="${i < sr ? "on" : ""}"></i>`).join("")}</div></div>
+      <div class="sb"><div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#3ed598"></i>حاضر</span><span><i style="background:#f0b34a"></i>بعذر</span><span><i style="background:#ff7a66"></i>بدون عذر</span></div></div></div></section>`;
   }
 
   /* ----- مؤشرات المدرسة: خارطة اكتمال المجالات ----- */
@@ -238,19 +231,76 @@ async function lbeedPage(m) {
       <div class="dm">${doms.map((x, i) => { const p = x.total ? Math.round((100 * x.approved) / x.total) : 0, c = PAL[i % PAL.length]; return `<a class="d" href="/self-evaluation/admin.html" style="--c:${c}"><span class="rg">${ring(p, c, 68)}<b>${num(p)}%</b></span><span class="tx"><b>${esc(x.name)}</b><small>${num(x.total)} مؤشرات · ${num(x.approved)} معتمد · ${num(x.evaluated)} مقيَّم</small><small>${x.last_update ? "آخر تحديث " + dt(x.last_update) : "لم يُحدَّث بعد"}</small></span></a>`; }).join("")}</div></div></section>`;
   }
 
+  /* ----- النمو المهني ----- */
+  function growthCard(gr) {
+    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>النمو المهني للمعلمين</h4><p>${gr ? `${num(gr.plans)} خطة نمو من ${num(gr.teachers)} معلماً` : "تعذر تحميل البيانات"}</p></div><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>`;
+    if (!gr) return `<section class="lb-p lb-gr">${head}</section>`;
+    const mx = Math.max(1, ...(gr.needs || []).map((n) => n.n)), pr = gr.target_hours ? Math.min(100, Math.round((100 * gr.approved_hours) / gr.target_hours)) : 0;
+    return `<section class="lb-p lb-gr">${head}<div class="gg"><div class="gk"><div><b class="cu" data-cu="${gr.approved_hours || 0}">0</b><span>ساعة معتمدة</span></div><div><b class="cu" data-cu="${gr.records_30d || 0}">0</b><span>سجل جديد خلال 30 يوماً</span></div><div><b class="cu" data-cu="${gr.pending_review || 0}">0</b><span>بانتظار المراجعة</span></div>
+      <div class="pg"><div class="lb-row"><span>الإنجاز نحو هدف ${num(gr.target_hours)} ساعة</span><b>${num(pr)}%</b></div><div class="lb-bar"><i style="width:${pr}%"></i></div></div></div>
+      <div class="gl"><h5>آخر ما اعتُمد</h5>${(gr.latest || []).length ? gr.latest.map((x) => `<a class="lb-it" href="${esc(x.link)}">${av(x.who, "community")}<div class="tx"><b>${esc(x.title)}</b><div class="mt"><span>${esc(x.who)}</span>${x.hours ? `<span>${num(x.hours)} ساعة</span>` : ""}</div></div></a>`).join("") : em("لم تُعتمد سجلات نمو بعد.")}</div>
+      <div class="gn"><h5>الاحتياجات المهنية المفتوحة (${num(gr.needs_open)})</h5>${(gr.needs || []).length ? gr.needs.slice(0, 5).map((n, i) => `<div class="lb-row"><span>${esc(n.domain)}</span><b>${num(n.n)}${n.high ? ` · ${n.high} عالٍ` : ""}</b></div><div class="lb-bar"><i style="width:${(n.n / mx) * 100}%;animation-delay:${i * .08}s;background:linear-gradient(90deg,#7a4bb5,#b99ae0)"></i></div>`).join("") : em("لا احتياجات مسجلة.")}</div></div></section>`;
+  }
+  /* ----- المعلمون الأكثر إنجازاً ----- */
+  function achCard(list) {
+    const head = `<div class="dh"><span class="ico b">${ic("crown")}</span><div><h4>الأكثر إنجازاً في النمو المهني</h4><p>المعلمون حسب الساعات المعتمدة</p></div><a href="/teachers-community/#/growth">كل السجلات</a></div>`;
+    if (!list.length) return `<section class="lb-p lb-ach">${head}${em("لم تُعتمد ساعات نمو مهني بعد.")}</section>`;
+    const mx = Math.max(1, ...list.map((x) => x.hours));
+    return `<section class="lb-p lb-ach">${head}<div class="al">${list.map((x, i) => `<a class="ap r${i < 3 ? i + 1 : 0}" href="${esc(x.link)}" style="--h:${hue(x.name)[0]}"><span class="rk">${num(i + 1)}</span><span class="ph">${x.photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", x.photo))}">` : esc(mono(x.name))}</span><b>${esc(x.name)}</b><small>${esc(x.specialty || "معلم")}</small><span class="pt"><i style="width:${(100 * x.hours) / mx}%"></i></span><em>${num(x.hours)} ساعة · ${num(x.records)} نشاط</em></a>`).join("")}</div></section>`;
+  }
+  /* ----- برامج هذا الأسبوع ----- */
+  function progCard(wk) {
+    const ps = (wk.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day)));
+    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>برامج هذا الأسبوع</h4><p>${esc(fmt(wk.from))} – ${esc(fmt(wk.to))} · ${num(ps.length)} برنامجاً</p></div><a href="/smart-plans/">الخطط الذكية</a></div>`;
+    if (!ps.length) return `<section class="lb-p lb-pg">${head}${em("لا برامج مجدولة هذا الأسبوع.", ["/smart-plans/", "فتح الخطط الذكية"])}</section>`;
+    return `<section class="lb-p lb-pg">${head}<div class="pgl">${ps.map((e) => `<a class="pgc" href="${esc(e.link || "/smart-plans/")}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span>${e.status ? `<span class="lb-st b">${esc(e.status)}</span>` : ""}</a>`).join("")}</div></section>`;
+  }
+  /* ----- الحجوزات حسب الحصص ----- */
+  function periodsCard(pd) {
+    const ps = pd.periods || [], taken = ps.filter((p) => (p.bookings || []).length).length;
+    const head = `<div class="dh"><span class="ico c">${ic("booking")}</span><div><h4>حجوزات اليوم حسب الحصص</h4><p>${num(taken)} حصص فيها حجوزات من ${num(ps.length)} · ${num(pd.total_bookable)} مرافق قابلة للحجز</p></div><a href="${esc(pd.link || "/facility-booking/bookings.html")}">احجز مرفقاً</a></div>`;
+    const stl = { running: ["جارية الآن", "g"], upcoming: ["قادمة", "b"], ended: ["انتهت", ""] };
+    return `<section class="lb-p lb-bk">${head}<div class="pdg">${ps.map((p) => { const bk = p.bookings || [], s = stl[p.state] || ["", ""]; return `<article class="pc ${esc(p.state)} ${bk.length ? "has" : "empty"}"><div class="ph"><b>${esc(p.name)}</b><small>${esc(tm2(p.from))} – ${esc(tm2(p.to))}</small><span class="lb-st ${s[1]}">${s[0]}</span></div>${bk.length ? bk.map((x) => `<div class="bi ${x.status === "pending" ? "pend" : ""}"><b>${esc(x.facility)}</b><small>${esc(x.who || "")}${x.purpose ? " · " + esc(x.purpose) : ""}</small>${x.status === "pending" ? `<em>بانتظار الاعتماد</em>` : ""}</div>`).join("") : `<div class="fr0"><span>فارغة</span><small>متاحة للحجز</small></div>`}</article>`; }).join("")}</div></section>`;
+  }
+  /* ----- المجتمعات المهنية ----- */
+  const CKIND = { plc: "مجتمع تعلم مهني", team: "فريق عمل", committee: "لجنة" };
+  function commCard(cs, ev) {
+    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية</h4><p>${num(cs.length)} مجتمعاً نشطاً وآخر ما حدث فيها</p></div><a href="/teachers-community/#/communities">فتح المجتمعات</a></div>`;
+    const one = (c) => `<a class="cm" href="${esc(c.link)}"><span class="ci">${ic("meeting")}</span><b>${esc(c.name)}</b><small>${esc(CKIND[c.kind] || c.kind || "")}${c.leader ? " · القائد: " + esc(c.leader) : ""}</small><span class="cn"><em>${num(c.members)}</em> أعضاء <em>${num(c.meetings_30d)}</em> لقاءات (30 يوماً)</span></a>`;
+    const set = cs.map(one).join("");
+    const KL = { minutes: "توثيق", meeting: "لقاء", post: "منشور", growth: "نمو مهني", task: "مهمة", initiative: "مبادرة", community: "مجتمع" };
+    return `<section class="lb-p dkc lb-cm">${head}${cs.length ? `<div class="vp"><div class="tr" style="animation-duration:${Math.max(30, cs.length * 12)}s">${set}${cs.length > 2 ? set : ""}</div></div>` : em("لا مجتمعات نشطة.")}
+      <div class="ce"><h5>آخر الأحداث في المجتمعات</h5>${(ev || []).length ? ev.map((x) => `<a class="ei" href="${esc(x.link || "#")}"><span class="kd ${x.kind === "minutes" ? "doc" : ""}">${esc(KL[x.kind] || x.kind)}</span><span class="tx"><b>${esc(String(x.title).replace(/^[^:]+: /, ""))}</b><small>${esc(x.detail || "")}${x.actor ? " · " + esc(x.actor) : ""}</small></span><time>${REL(x.at)}</time></a>`).join("") : em("لا أحداث حديثة.")}</div></section>`;
+  }
+  /* ----- حالة الأنظمة (أخضر، قابلة للتمدد) ----- */
+  const SICO = { core: "school", saas: "check", plans: "plan", community: "users", indibati: "clock", qiyami: "star", booking: "cal" };
+  const SDESC = { core: "الهوية الموحدة والسجلات", saas: "المؤشرات والشواهد والتقييم", plans: "الخطط والبرامج وتوثيقها", community: "النمو المهني والمجتمعات", indibati: "الحضور والغياب والتأخر", qiyami: "النقاط والأوسمة والسلوك", booking: "حجز المرافق والقاعات" };
+  const SURL = { core: "/digital-core/dashboard.html", saas: "/self-evaluation/admin.html", plans: "/smart-plans/", community: "/teachers-community/", indibati: "/indibati/dashboard.html", qiyami: "/qiyami/leaderboard.html", booking: "/facility-booking/bookings.html" };
+  const SOPEN = new Set();
+  function sysCard(d, pl) {
+    const tot = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1;
+    return `<section class="lb-p lb-sys"><div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>حالة الأنظمة</h4><p>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته · اضغط على النظام لتفاصيله</p></div></div><div class="sl">${Object.keys(SYS).map((k) => {
+      const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, st = age < 2 ? ["نشط", "ok"] : age < 7 ? ["هادئ", "mid"] : ["ساكن", "old"], n = pl.by_sys[k] || 0;
+      return `<div class="sy ${st[1]} ${SOPEN.has(k) ? "open" : ""}" data-k="${k}"><button type="button" class="sh" aria-expanded="${SOPEN.has(k)}"><span class="si">${ico(SICO[k])}</span><span class="tt"><b>${esc(SYS[k])}</b><small>${esc(SDESC[k])}</small></span><span class="bd"><i></i>${st[0]}</span><span class="chv">${ic("chev")}</span></button>
+        <div class="sb"><div><div class="sx"><div><b>${num(n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(v)}</b><span>آخر نشاط</span></div><div><b>${num(Math.round((100 * n) / tot))}%</b><span>من حركة المدرسة</span></div></div><div class="lb-bar"><i style="width:${Math.max((n / tot) * 100, n ? 4 : 0)}%"></i></div><div class="sf" data-sf="${k}"><small>جارٍ تحميل آخر الأحداث…</small></div><a class="go" href="${SURL[k]}">فتح ${esc(SYS[k])} ${ic("up")}</a></div></div></div>`; }).join("")}</div></section>`;
+  }
+  async function loadSf(el, k) { if (el.dataset.done) return; el.dataset.done = "1"; try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 4, p_offset: 0 }); const it = r.items || []; el.innerHTML = it.length ? it.map((x) => `<a href="${esc(x.link || "#")}"><b>${esc(x.title)}</b><small>${esc(x.actor || "")} · ${REL(x.at)}</small></a>`).join("") : `<small>لا أحداث حديثة.</small>`; } catch (e) { el.dataset.done = ""; el.innerHTML = `<small>تعذر التحميل.</small>`; } }
+
   async function overview() {
-    const [d, pl, docs, top, hn] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ link: "#" }))]);
-    const ind = d.indicators || {}, at = d.attendance || {}, fa = d.facilities || {}, totAct = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1, bk = fa.bookings || [], pend = bk.filter((x) => x.status === "pending").length;
-    body.innerHTML = `${docsStrip(docs || [])}
+    const [d, pl, docs, wk, gr, ach, pd, cs, cev] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_week", { p_from: null }).catch(() => ({ events: [] })), rpc("lb_growth").catch(() => null), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => [])]);
+    body.innerHTML = `${disCard(d.attendance || {})}
+      ${docsStrip(docs || [])}
       <section id="lbCal" class="lb-calw" aria-label="التقويم واللقاءات"></section>
-      ${disCard(at)}
-      ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
-      <section class="lb-p lb-bk"><div class="dh"><span class="ico c">${ic("booking")}</span><div><h4>حجوزات اليوم</h4><p>جدول المرافق على مدار اليوم</p></div><a href="/facility-booking/bookings.html">فتح الحجوزات</a></div>
-        <div class="chs"><span class="g"><b>${num(bk.length - pend)}</b>حجز معتمد</span><span class="y"><b>${num(pend)}</b>بانتظار الاعتماد</span><span class="b"><b>${num(fa.available_now)}</b>متاح الآن من ${num(fa.total_bookable)}</span></div>${bookingsTL(fa)}</section>
-      ${indCard(ind)}
-      <div class="lb-sec"><h3>حالة الأنظمة</h3><small>سبعة أنظمة، وكل نظام يبقى مصدر الحقيقة لبياناته</small></div>
-      <div class="lb-srcg">${Object.keys(SYS).map((k) => { const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, cls = age < 2 ? "" : age < 7 ? "mid" : "old", n = pl.by_sys[k] || 0; return `<a class="lb-sc ${cls}" style="--c:${COL[k]};text-decoration:none;color:inherit" href="${k === "core" ? "/digital-core/dashboard.html" : k === "saas" ? "/self-evaluation/admin.html" : k === "plans" ? "/smart-plans/" : k === "community" ? "/teachers-community/" : k === "indibati" ? "/indibati/dashboard.html" : k === "qiyami" ? "/qiyami/leaderboard.html" : "/facility-booking/bookings.html"}"><div class="ic">${esc(SYS[k][0])}</div><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً في 14 يوماً</small><div class="lb-bar" style="height:6px;margin-top:8px"><i style="width:${Math.max((n / totAct) * 100, n ? 4 : 0)}%;background:${COL[k]}"></i></div><div class="fr"><i></i>${age < 2 ? "نشط" : age < 7 ? "هادئ" : "ساكن"} · ${REL(v)}</div></a>`; }).join("")}</div>`;
+      ${indCard(d.indicators || {})}
+      ${growthCard(gr)}
+      ${achCard(ach || [])}
+      ${progCard(wk || { events: [] })}
+      ${periodsCard(pd || { periods: [] })}
+      ${commCard(cs || [], cev || [])}
+      ${sysCard(d, pl)}`;
     body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
+    body.querySelectorAll(".sy .sh").forEach((b) => (b.onclick = () => { const r = b.parentElement, k = r.dataset.k, on = !r.classList.contains("open"); r.classList.toggle("open", on); b.setAttribute("aria-expanded", on); on ? SOPEN.add(k) : SOPEN.delete(k); if (on) loadSf(r.querySelector(".sf"), k); }));
+    body.querySelectorAll(".sy.open .sf").forEach((e) => loadSf(e, e.dataset.sf));
     body.querySelectorAll(".cu").forEach((el) => countUp(el, el.dataset.cu));
     await calWidget(body.querySelector("#lbCal"));
   }
