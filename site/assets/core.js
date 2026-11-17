@@ -110,7 +110,7 @@ async function boot(page, render, o = {}) {
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
   const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
-  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html"].includes(page)) { location.replace("profile.html"); return; }
+  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
   const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html") : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
