@@ -28,10 +28,6 @@ boot("profile.html", async (m, c) => {
         <div><label for="em">البريد الإلكتروني</label><input id="em" type="email" ${S} autocomplete="email" value="${esc(p.email || "")}" placeholder="name@example.com"><small class="sub">للتواصل فقط، ولا يغيّر طريقة دخولك.</small></div>
         <div><label for="ph">رقم الجوال</label><input id="ph" type="tel" ${S} inputmode="tel" autocomplete="tel" value="${esc(p.phone || "")}" placeholder="05xxxxxxxx"><small class="sub">10 أرقام تبدأ بـ 05.</small></div>
       </div><p class="err" id="ce" role="alert"></p><div class="acts"><button class="btn" id="cs" type="submit">حفظ بيانات التواصل</button></div></form></div>
-    <div class="card mt" id="pk" hidden><h3 class="sec" style="margin-top:0">الدخول ببصمة الوجه</h3>
-      <p class="sub">فعّل الدخول بلمسة واحدة على أجهزتك الشخصية. يتحقق الجهاز من وجهك أو بصمتك، ولا تُحفظ لدينا أي صورة أو بيانات بيومترية. يعمل المفتاح الواحد على جميع أنظمة النواة.</p>
-      <div id="pkl"></div><p class="err" id="pke" role="alert"></p>
-      <div class="acts"><button class="btn" id="pka" type="button">تفعيل البصمة على هذا الجهاز</button></div></div>
     <div class="card mt" id="pw"><h3 class="sec" style="margin-top:0">تغيير كلمة المرور</h3>
       ${p.must_change_password ? '<p class="alert">تدخل الآن بكلمة المرور الافتراضية الموحدة. ننصح بتغييرها الآن.</p>' : `<p class="sub">آخر تغيير: ${p.password_changed_at ? fmtT(p.password_changed_at) : "—"}</p>`}
       <div class="card" style="background:var(--soft);box-shadow:none"><b>شروط كلمة المرور الجديدة</b>
@@ -51,18 +47,6 @@ boot("profile.html", async (m, c) => {
   const paint = () => PW_RULES.forEach(([k, , f]) => { const li = g(`[data-r="${k}"]`), ok = f(np.value); li.style.color = np.value ? (ok ? "var(--c4f)" : "var(--c5f)") : ""; li.textContent = (np.value ? (ok ? "✓ " : "✗ ") : "") + PW_RULES.find((x) => x[0] === k)[1]; });
   np.addEventListener("input", paint);
   g("#sh").onchange = (e) => ["#cp", "#np", "#np2"].forEach((i) => (g(i).type = e.target.checked ? "text" : "password"));
-  // الدخول ببصمة الوجه
-  PK.available().then((ok) => { if (!ok) return; g("#pk").hidden = false; pkList(); });
-  async function pkList() {
-    const { data } = await sb.from("passkeys").select("id,device_label,created_at,last_used_at").order("created_at");
-    g("#pkl").innerHTML = (data || []).length ? `<div class="tw"><table><thead><tr><th>الجهاز</th><th>أُضيف</th><th>آخر دخول</th><th></th></tr></thead><tbody>${data.map((k) => `<tr><td>${esc(k.device_label || "جهاز")}</td><td>${fmtT(k.created_at)}</td><td>${k.last_used_at ? fmtT(k.last_used_at) : "—"}</td><td><button class="btn ghost" data-del="${k.id}" type="button">حذف</button></td></tr>`).join("")}</tbody></table></div>` : '<p class="sub">لا توجد أجهزة مفعّلة بعد.</p>';
-    g("#pkl").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => { if (!confirm("حذف هذا الجهاز من الدخول بالبصمة؟")) return; await sb.from("passkeys").delete().eq("id", b.dataset.del); PK.forget(); pkList(); }));
-  }
-  g("#pka").onclick = async () => {
-    const b = g("#pka"), er = g("#pke"); er.textContent = ""; b.disabled = true;
-    try { await PK.register(sb, PK.deviceLabel()); toast("تم تفعيل الدخول ببصمة الوجه"); pkList(); } catch (e) { er.textContent = e.message; }
-    b.disabled = false;
-  };
   g("#cf").onsubmit = async (e) => {
     e.preventDefault(); const er = g("#ce"), b = g("#cs"); er.textContent = ""; b.disabled = true;
     const { data, error } = await sb.rpc("core_update_my_contact", { p_email: g("#em").value, p_phone: g("#ph").value }); b.disabled = false;

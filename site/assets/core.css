@@ -1048,11 +1048,4 @@ table.ta{min-width:1100px}.ta th,.ta td{padding:6px;text-align:center;font-size:
 .lgchk{display:flex!important;gap:10px;align-items:flex-start;margin:12px 0 4px!important;font-weight:500;cursor:pointer}
 .lgchk input{width:auto;margin-top:4px;accent-color:var(--brand)}
 .lgchk small{display:block;font-weight:400}
-.lgor{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:#6b7c80;font-size:.85rem}
-.lgor::before,.lgor::after{content:"";flex:1;height:1px;background:rgba(15,138,148,.2)}
-.lgbody .login .btn.lgface{justify-content:center;background:#fff;color:var(--brand2);border:1.5px solid var(--brand)}
-.lgbody .login .btn.lgface:hover{background:var(--c0b)}
-.lgbody .login .btn.lgskip{margin-top:8px;background:transparent;color:var(--brand2);border:1px solid rgba(15,138,148,.35);justify-content:center}
-.lgbody .login #oy{justify-content:center}
 .btn:disabled{opacity:.6;cursor:not-allowed}
-.card .btn.ghost{background:#fff;color:var(--brand2);border:1px solid rgba(15,138,148,.35)}

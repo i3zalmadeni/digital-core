@@ -28,6 +28,3 @@
 
 ## الأخطاء
 `401 missing_system_key | invalid_system_key`، `403 scope_required`، `404 not_found`، `405 read_only_api`، `400 bad_request`.
-
-## الدخول ببصمة الوجه (WebAuthn / مفاتيح المرور)
-مسارات `POST` في `core-api` (الأصل `https://i3zalmadeni.github.io` ثابت في الدالة): `/passkey/register-options` و`/passkey/register-verify` (تتطلب جلسة قائمة، حتى 5 أجهزة للمستخدم)، و`/passkey/login-options` و`/passkey/login-verify` (بلا جلسة، مفتاح قابل للاكتشاف دون كتابة المعرّف). يُخزَّن المفتاح العام فقط في `passkeys` (الجدول والسياسات في الهجرة 0037)، وتُستهلك التحديات مرة واحدة خلال 5 دقائق. عند نجاح التحقق وفعالية الحساب (غير موقوف، `is_active`، `account_status=active`) تُعاد `token_hash` يحوّلها المتصفح إلى جلسة عبر `verifyOtp`، فتُشارَك بين الأنظمة كالدخول العادي. الأخطاء: `challenge_expired`، `unknown_passkey`، `verification_failed`، `banned`، `inactive`.
