@@ -1,6 +1,6 @@
 /* «يحدث في لبيد» – نافذة قراءة فقط. تستدعي دوال التجميع lb_* فقط ولا تكتب في أي جدول. */
 async function lbeedPage(m) {
-  const SYS = { core: "النواة الرقمية", saas: "التقويم المدرسي الذكي", plans: "الخطط الذكية", community: "مجتمع لبيد المهني", indibati: "انضباطي", qiyami: "قيمي", booking: "احجز مرفق" };
+  const SYS = { core: "النواة الرقمية", saas: "التقويم المدرسي الذكي", plans: "الخطط الذكية", community: "المجتمع المهني الذكي", indibati: "انضباطي", qiyami: "قيمي", booking: "احجز مرفق" };
   const COL = { core: "#0f8a94", saas: "#2f5ea8", plans: "#b86d0c", community: "#7a4bb5", indibati: "#b8434f", qiyami: "#24895a", booking: "#0da9a6" };
   const KIND = { meeting: "اجتماع", program: "برنامج", booking: "حجز", deadline: "موعد", task: "مهمة", calendar: "تقويم", attendance: "حضور", achievement: "إنجاز" };
   const OP = { new: "جديد", update: "تعديل" };
@@ -234,7 +234,7 @@ async function lbeedPage(m) {
   /* ----- آخر ما أُضيف من نمو مهني ----- */
   const GK = { course: "دورة", training: "دورة تدريبية", workshop: "ورشة عمل", visit: "زيارة", publication: "منشور", award: "جائزة", conference: "مؤتمر", certificate: "شهادة", other: "نشاط" };
   function growthCard(list) {
-    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>آخر ما أُضيف من نمو مهني</h4><p>الدورات والورش والأنشطة التي وثّقها المعلمون مؤخراً</p></div><a href="/teachers-community/#/growth">مجتمع لبيد المهني</a></div>`;
+    const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>آخر ما أُضيف من نمو مهني</h4><p>الدورات والورش والأنشطة التي وثّقها المعلمون مؤخراً</p></div><a href="/teachers-community/#/growth">المجتمع المهني الذكي</a></div>`;
     if (!list.length) return `<section class="lb-p lb-gr">${head}${em("لم يضف المعلمون نشاطاً مهنياً بعد.", ["/teachers-community/#/growth", "فتح النمو المهني"])}</section>`;
     return `<section class="lb-p lb-gr">${head}<div class="gl2">${list.map((x) => { const ok = x.status === "approved"; return `<a class="gc" href="${esc(x.link)}" style="--h:${hue(x.who)[0]}"><span class="ph">${x.photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", x.photo))}">` : esc(mono(x.who))}</span><span class="tx"><b>${esc(x.title)}</b><small>${esc(x.who)}${x.provider ? " · " + esc(x.provider) : ""}</small><span class="cs"><em class="k">${esc(GK[x.kind] || x.kind || "نشاط")}</em>${x.hours ? `<em>${num(x.hours)} ساعة</em>` : ""}<em class="${ok ? "ok" : "wt"}">${ok ? "معتمد" : "بانتظار المراجعة"}</em></span></span><time>${REL(x.at)}</time></a>`; }).join("")}</div></section>`;
   }
