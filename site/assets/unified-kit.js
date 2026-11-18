@@ -1,4 +1,4 @@
-/* الحزمة الموحّدة لمنظومة النواة الرقمية (النسخة نفسها في كل الأنظمة الثمانية، والمصدر: digital-core/site/assets/unified-kit.js)
+/* الحزمة الموحّدة لمنظومة النواة الرقمية (النسخة نفسها في كل الأنظمة التسعة، والمصدر: digital-core/site/assets/unified-kit.js)
  * 1) PK.fitNav: قائمة التنقل الداكنة، ما لا يتسع منها ينتقل إلى قائمة «المزيد» ذات تمرير رأسي، فلا يختفي أي تبويب.
  * 2) PK.mountAnnouncements: شريط الإعلانات والتحديثات (مركزي + خاص بالبوابة) من دالة portal_announcements_active.
  * 3) PK.announcementsAdmin: واجهة إدارة الإعلانات (scope: central لمدير النواة، portal للمسؤول المخول في البوابة).
@@ -8,7 +8,7 @@
   const PK = (window.PK = {});
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const reduce = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
-  PK.SYSTEMS = [["core", "النواة الرقمية"], ["smart_plans", "الخطط الذكية"], ["self_evaluation", "التقويم المدرسي الذكي"], ["teachers_community", "مجتمع النمو المهني"], ["indibati", "انضباطي"], ["qiyami", "قيمي"], ["facility_booking", "حجز المرافق"], ["mirat", "الملف الشامل"]];
+  PK.SYSTEMS = [["core", "النواة الرقمية"], ["smart_plans", "الخطط الذكية"], ["self_evaluation", "التقويم المدرسي الذكي"], ["teachers_community", "مجتمع النمو المهني"], ["indibati", "انضباطي"], ["qiyami", "قيمي"], ["facility_booking", "حجز المرافق"], ["mirat", "الملف الشامل"], ["athar", "أثر"]];
   const SYSNAME = Object.fromEntries(PK.SYSTEMS);
 
   const CSS = `
@@ -232,7 +232,7 @@ main h3.sec{margin-top:26px;padding-inline-start:12px;border-inline-start:5px so
         <label>النوع<select name="kind"><option value="announcement"${x && x.kind === "announcement" ? " selected" : ""}>إعلان أو رسالة</option><option value="update"${x && x.kind === "update" ? " selected" : ""}>تحديث جديد</option></select></label>
         <label>الأهمية<select name="priority"><option value="normal">عادية</option><option value="important"${x && x.priority === "important" ? " selected" : ""}>مهمة</option></select></label>
         <label class="full">نص الرسالة (حتى 600 حرف)<textarea name="message" maxlength="600" required>${esc(x ? x.message : "")}</textarea></label>
-        ${central ? `<div class="full"><b style="font-size:.86rem">الأنظمة التي تظهر فيها</b><div class="pk-tg" style="margin-top:6px"><label class="pk-chk"><input type="checkbox" name="all"${!x || !t.length ? " checked" : ""}> كل الأنظمة الثمانية</label>${PK.SYSTEMS.map(([k, n]) => `<label class="pk-chk"><input type="checkbox" name="t" value="${k}"${t.includes(k) ? " checked" : ""}> ${esc(n)}</label>`).join("")}</div></div>` : ""}
+        ${central ? `<div class="full"><b style="font-size:.86rem">الأنظمة التي تظهر فيها</b><div class="pk-tg" style="margin-top:6px"><label class="pk-chk"><input type="checkbox" name="all"${!x || !t.length ? " checked" : ""}> كل الأنظمة التسعة</label>${PK.SYSTEMS.map(([k, n]) => `<label class="pk-chk"><input type="checkbox" name="t" value="${k}"${t.includes(k) ? " checked" : ""}> ${esc(n)}</label>`).join("")}</div></div>` : ""}
         <label>مكان الظهور<select name="show_on"><option value="all">جميع صفحات البوابة</option><option value="home"${x && x.show_on === "home" ? " selected" : ""}>الصفحة الرئيسية فقط</option></select></label>
         <label>الترتيب (الأصغر أولاً)<input type="number" name="sort_order" value="${x ? x.sort_order : 0}" step="1"></label>
         <label>بداية العرض<input type="datetime-local" name="starts_at" value="${toLocal(x ? x.starts_at : new Date())}"></label>
