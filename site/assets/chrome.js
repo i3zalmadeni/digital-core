@@ -143,8 +143,8 @@ const UB_SYS = [
   ["indibati/dashboard.html", "انضباطي", "clock", "الحضور والغياب والتأخر"],
   ["qiyami/dashboard.html", "قيمي", "star", "النقاط والأوسمة والسلوك"],
   ["facility-booking/dashboard.html", "احجز مرفق", "building", "حجز المرافق والقاعات"],
-  ["report/desk.html", "مرآة | الملف الشامل", "eye", "الملف الشامل للمتعلم والمعلم"],
   ["athar/dashboard.html", "أثر", "chart", "قياس الأثر وإدارة الاستبانات"],
+  ["report/desk.html", "مرآة | الملف الشامل", "eye", "الملف الشامل للمتعلم والمعلم"],
 ];
 const ubSysHTML = () => { const cur = location.pathname.split("/").filter(Boolean)[0] || "";
   return UB_SYS.map(([p, n, i, d]) => { const on = p.split("/")[0] === cur;
