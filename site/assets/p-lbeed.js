@@ -1,3 +1,5 @@
+// زر إغلاق (×) في أعلى نافذة التفاصيل مع بقاء زر الإغلاق السفلي
+function lbX(dlg) { if (dlg.querySelector(":scope>.dx")) return; const b = document.createElement("button"); b.type = "button"; b.className = "dx"; b.setAttribute("aria-label", "إغلاق"); b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'; b.onclick = () => dlg.close(); dlg.prepend(b); }
 /* «يحدث في لبيد» – نافذة قراءة فقط. تستدعي دوال التجميع lb_* فقط ولا تكتب في أي جدول. */
 async function lbeedPage(m) {
   const SYS = { core: "النواة الرقمية", saas: "التقويم المدرسي الذكي", plans: "الخطط الذكية", community: "المجتمع المهني الذكي", indibati: "انضباطي", qiyami: "قيمي", booking: "احجز مرفق" };
@@ -120,7 +122,7 @@ async function lbeedPage(m) {
     const when = e.starts_at ? `${fmt(e.day)} · ${tm(e.starts_at)}` : e.from ? `${fmt(e.day)} · ${tm2(e.from)} – ${tm2(e.to)}` : e.until && e.until !== e.day ? `من ${fmt(e.day)} إلى ${fmt(e.until)}` : fmt(e.day);
     const rows = [["الموعد", `${dayName(e.day)} ${when}`], ["النظام", SYS[e.sys]], ["الفريق أو الجهة", e.team], ["المكان", e.place], ["المسؤول", e.owner], ["الفئة المستفيدة", e.beneficiary], ["الحالة", e.kind === "meeting" ? (ST[e.state] || [""])[0] : e.kind === "booking" ? (e.state === "pending" ? "بانتظار الاعتماد" : "معتمد") : e.status], ["التوثيق", e.kind === "meeting" && e.doc ? (DOC[e.doc] || [""])[0] : null]].filter((r) => r[1]);
     dlg.innerHTML = `<div class="hd" style="--c:${COL[e.sys]}"><span class="ty">${TYPE[e.kind] || e.kind}</span><h3>${esc(e.title)}</h3></div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><div class="ft"><a class="go" href="${esc(e.link || "#")}">فتح في ${esc(SYS[e.sys])}</a><button type="button" id="dX">إغلاق</button></div>`;
-    dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    dlg.querySelector("#dX").onclick = () => dlg.close(); lbX(dlg); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
   }
 
   /* ----- حجوزات اليوم: خط زمني لكل مرفق ----- */
@@ -156,7 +158,7 @@ async function lbeedPage(m) {
     const rows = [["المنفذ", x.executor], ["تاريخ التنفيذ", x.date ? fmt(x.date) : ""], ["المكان", x.location], ["المشاركون", x.participants], ["عدد المستفيدين", x.beneficiaries]].filter((r) => r[1]);
     dlg.innerHTML = `<div class="hd" style="--c:#b86d0c"><span class="ty">توثيق · الخطط الذكية</span><h3>${esc(x.title)}</h3></div><div class="dg">${x.images.map((p) => `<a href="${esc(pub("sp-evidence", p))}" target="_blank" rel="noopener"><img alt="" src="${esc(pub("sp-evidence", p))}"></a>`).join("")}</div>
       <dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}${x.description ? `<div><dt>الوصف</dt><dd>${esc(x.description)}</dd></div>` : ""}${x.outputs ? `<div><dt>المخرجات</dt><dd>${esc(x.outputs)}</dd></div>` : ""}</dl><div class="ft"><a class="go" href="${esc(x.link || "/smart-plans/")}">فتح في الخطط الذكية</a><button type="button" id="dX">إغلاق</button></div>`;
-    dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    dlg.querySelector("#dX").onclick = () => dlg.close(); lbX(dlg); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
   }
 
   /* ----- التقويم التفاعلي + خط اليوم الزمني ----- */
@@ -303,7 +305,7 @@ async function lbeedPage(m) {
     let dlg = m.querySelector("#lbDlg"); if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "lbDlg"; dlg.className = "lb-dlg"; m.querySelector(".lb").appendChild(dlg); dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); }); }
     const i = SYSI[k] || { st: ["", ""], n: 0, share: 0 };
     dlg.innerHTML = `<div class="hd" style="--c:#1d7a4f"><span class="ty">${esc(i.st[0])}</span><h3>${esc(SYS[k])}</h3><p style="margin:4px 0 0;opacity:.9;font-size:.88rem">${esc(SDESC[k])}</p></div><div class="sx2"><div><b>${num(i.n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(i.v)}</b><span>آخر نشاط</span></div><div><b>${num(i.share)}%</b><span>من حركة المدرسة</span></div></div><div class="sf2" id="sfD"><small>جارٍ تحميل آخر الأحداث…</small></div><div class="ft"><a class="go" href="${SURL[k]}">فتح ${esc(SYS[k])}</a><button type="button" id="dX">إغلاق</button></div>`;
-    dlg.querySelector("#dX").onclick = () => dlg.close(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    dlg.querySelector("#dX").onclick = () => dlg.close(); lbX(dlg); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
     try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 5, p_offset: 0 }), it = r.items || [], el = dlg.querySelector("#sfD"); if (el) el.innerHTML = it.length ? it.map((x) => `<a href="${esc(x.link || "#")}"><b>${esc(x.title)}</b><small>${esc(x.actor || "")} · ${REL(x.at)}</small></a>`).join("") : `<small>لا أحداث حديثة.</small>`; } catch (e) { const el = dlg.querySelector("#sfD"); if (el) el.innerHTML = `<small>تعذر تحميل الأحداث.</small>`; }
   }
 

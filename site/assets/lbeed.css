@@ -562,3 +562,5 @@
   .lb-dis .dh{flex-wrap:wrap}
   .lb-dis .dh>a{margin-inline-start:0;flex:1 1 100%;text-align:center}
 }
+
+.lb-dlg{position:relative}.lb-dlg>.dx{position:absolute;top:12px;inset-inline-end:12px;width:38px;height:38px;display:grid;place-items:center;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22);color:#fff;cursor:pointer;z-index:3;box-shadow:none}.lb-dlg>.dx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.lb-dlg>.dx:hover{background:rgba(255,255,255,.4)}.lb-dlg>.dx:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}.lb-dlg>.dx~.hd{padding-inline-end:60px}

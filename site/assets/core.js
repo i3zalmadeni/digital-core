@@ -31,9 +31,13 @@ const num = (v) => (v === "" || v === undefined || v === null ? null : Number(v)
 const FIELD_AR = { full_name: "الاسم", category: "الفئة", job_title: "المسمى", specialty: "التخصص", qualification: "المؤهل", employment_status: "الحالة الوظيفية", department: "القسم", photo_path: "الصورة", account_status: "الحساب", student_no: "رقم الطالب", study_status: "الحالة الدراسية", birth_date: "تاريخ الميلاد", nationality: "الجنسية", grade_code: "الصف", section_id: "الفصل", status: "الحالة", name: "الاسم", type_code: "النوع", building: "المبنى", floor: "الدور", room_no: "رقم الغرفة", area_m2: "المساحة", capacity: "الطاقة الاستيعابية", description: "الوصف", primary_staff_id: "المسؤول الرئيسي", backup_staff_id: "المسؤول البديل", official_name: "الاسم الرسمي", ministry_no: "الرقم الوزاري", phone: "الجوال", email: "البريد", employee_no: "الرقم الوظيفي", address: "العنوان", quantity: "الكمية" };
 
 function toast(msg, bad) { const d = document.createElement("div"); d.className = "toast" + (bad ? " bad" : ""); d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
+const MX_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+// زر إغلاق (×) في أعلى كل نافذة منبثقة، مع بقاء أزرار الإغلاق السفلية؛ يُعاد إدراجه إذا أُعيد رسم محتوى النافذة
+function modalX(md, close) { const sync = () => { const cur = md.querySelector(":scope>.mx"), f = [...md.children].find((c) => !c.classList.contains("mx")), has = f && (f.hasAttribute("data-x") || f.querySelector("[data-x]")); if (has) { if (cur) cur.remove(); return; } if (cur) return; const b = document.createElement("button"); b.type = "button"; b.className = "mx"; b.setAttribute("aria-label", "إغلاق"); b.innerHTML = MX_SVG; b.onclick = close; md.prepend(b); }; sync(); new MutationObserver(sync).observe(md, { childList: true }); }
 function modal(html, wide) {
   const ov = document.createElement("div"); ov.className = "ov"; ov.innerHTML = `<div class="md" role="dialog" aria-modal="true" ${wide ? 'style="max-width:860px"' : ""}>${html}</div>`;
   const close = () => ov.remove(); ov.addEventListener("mousedown", (e) => { if (e.target === ov) close(); });
+  modalX(ov.firstChild, close);
   document.body.appendChild(ov); return { el: ov.firstChild, close };
 }
 function mapErr(e) {
