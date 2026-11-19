@@ -121,7 +121,7 @@ html,body{margin:0!important;padding:0!important;background:#fff;-webkit-print-c
 
   const head = (o, issue) => `<div class="rk-ph"><div class="rk-ph-r"><div class="rk-k"><b>المملكة العربية السعودية</b><b>وزارة التعليم</b><span>الإدارة العامة للتعليم بمحافظة الأحساء</span><span>مدرسة لبيد بن ربيعة المتوسطة</span></div></div>
     <div class="rk-ph-c"><div class="rk-core"><img src="${CORE}assets/core-logo.svg" alt=""><span><b>النواة الرقمية</b><small>الهوية الموحدة</small></span></div><span class="rk-sep"></span><img class="rk-moe" src="${CORE}assets/moe-logo.png" alt="وزارة التعليم"></div>
-    <div class="rk-ph-l"><div class="rk-meta"><div><span>التاريخ:</span><b>${esc(dstr(issue ? issue.at : new Date()))}</b></div><div><span>العام الدراسي:</span><b>${esc(o.year || "")}</b></div>${issue ? `<div><span>رقم التقرير:</span><b dir="ltr">${fmtCode(issue.code)}</b></div>` : ""}</div></div></div><div class="rk-bar"><i></i><i></i><i></i></div>`;
+    <div class="rk-ph-l"><div class="rk-meta"><div><span>التاريخ:</span><b>${esc(dstr(issue ? issue.at : new Date()))}</b></div><div><span>العام الدراسي:</span><b>${esc(o.year || "")}</b></div><div><span>رقم التقرير:</span><b dir="ltr">${issue ? fmtCode(issue.code) : "يُصدر عند الطباعة"}</b></div></div></div></div><div class="rk-bar"><i></i><i></i><i></i></div>`;
   const foot = (o, issue, n, N) => `<div class="rk-bar"><i></i><i></i><i></i></div><div class="rk-pf"><div class="rk-pfs"><img src="${esc(o.systemLogo)}" alt=""><span><small>صدر هذا التقرير من</small><b>${esc(o.systemName)}</b></span></div>
     <div class="rk-pfm"><b>صفحة ${n} من ${N}</b>${esc(dstr(issue ? issue.at : new Date()))}${o.issuer ? " · بواسطة " + esc(o.issuer) : ""}<br>مدرسة لبيد بن ربيعة المتوسطة</div>
     <div class="rk-pfs"><span style="text-align:left"><small>أحد أنظمة</small><b>النواة الرقمية</b></span><img src="${CORE}assets/core-logo.svg" alt=""></div>
@@ -248,10 +248,15 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
     return out;
   };
 
+  /* اسم المُصدِر والعام الدراسي من النواة إن لم يُمرَّرا */
+  async function fill(o, sb) {
+    if (!sb || (o.issuer && o.year)) return;
+    try { const [me, yr] = await Promise.all([o.issuer ? null : sb.rpc("current_staff_id").then((r) => r.data ? sb.from("staff_members").select("full_name").eq("id", r.data).maybeSingle() : null), o.year ? null : sb.from("academic_years").select("name").eq("status", "current").maybeSingle()]); if (me && me.data) o.issuer = me.data.full_name; if (yr && yr.data) o.year = yr.data.name; } catch (e) { /* بيانات اختيارية */ }
+  }
   async function issueDoc(o) {
     const sb = o.sb || defaultClient();
     if (!sb) throw new Error("no client");
-    if (!o.issuer || !o.year) { try { const [me, yr] = await Promise.all([o.issuer ? null : sb.rpc("current_staff_id").then((r) => r.data ? sb.from("staff_members").select("full_name").eq("id", r.data).maybeSingle() : null), o.year ? null : sb.from("academic_years").select("name").eq("status", "current").maybeSingle()]); if (me && me.data) o.issuer = me.data.full_name; if (yr && yr.data) o.year = yr.data.name; } catch (e) { /* بيانات اختيارية */ } }
+    await fill(o, sb);
     const id = uuid(), code = id.replace(/-/g, "").slice(0, 16).toUpperCase(), issue = { code, url: VERIFY + "?c=" + code, at: new Date() };
     const paged = await paginate(o, issue);
     const { error } = await sb.from("core_report_issues").insert({ id, code, system: o.system, system_name: String(o.systemName).slice(0, 120), title: String(o.title).slice(0, 500), subtitle: o.sub ? String(o.sub).slice(0, 500) : null, pages: paged.pages.length, public_full: !!o.publicFull, doc_html: doc(o, paged, issue, false) });
@@ -290,6 +295,8 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
       try { show(await paginate(o, null), null); return true; } catch (e2) { console.error(e2); if (w) w.close(); alert("تعذّر إنشاء التقرير"); return false; }
     });
   }
+  /* معاينة على الشاشة بنفس الهوية والتقسيم (دون رقم تحقق؛ يُصدر الرقم والرمز عند الطباعة): تعيد مستند HTML كاملًا */
+  async function preview(opts) { const o = norm(opts); await fill(o, o.sb || defaultClient()); return doc(o, await paginate(o, null), null, false); }
   const STRIP = ".no-print,.noprint,.np,.rp-bar,.rp-pick,.rp-tip,button,.btn,.acts,nav,.tabs,input,select,textarea,script,#ub,.ub";
   /* طباعة عنصر قائم: محتواه (دون عناصر التحكم) مع أنماط صفحته */
   function printElement(el, opts) {
@@ -309,5 +316,5 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
       return printElement(el, { system: cfg.system, systemName: cfg.systemName, systemLogo: cfg.systemLogo, publicFull: cfg.publicFull, title, sub });
     };
   }
-  window.ReportKit = { print, printElement, install, nativePrint: NATIVE_PRINT, QR, VERIFY };
+  window.ReportKit = { print, preview, printElement, install, nativePrint: NATIVE_PRINT, QR, VERIFY };
 })();
