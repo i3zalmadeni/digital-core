@@ -7,8 +7,8 @@ async function doLogout(to) {
 const FN = APP_CONFIG.supabaseUrl + "/functions/v1/core-api";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const qs = (k) => new URLSearchParams(location.search).get(k);
-const fmt = (d) => (d ? new Date(d).toLocaleDateString("ar-SA-u-nu-latn", { year: "numeric", month: "short", day: "numeric" }) : "—");
-const fmtT = (d) => (d ? new Date(d).toLocaleString("ar-SA-u-nu-latn", { dateStyle: "medium", timeStyle: "short" }) : "—");
+const fmt = (d) => (d ? new Date(d).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "short", day: "numeric" }) : "—");
+const fmtT = (d) => (d ? new Date(d).toLocaleString("ar-SA-u-ca-gregory-nu-latn", { dateStyle: "medium", timeStyle: "short" }) : "—");
 const L = {
   acct: { none: "بلا حساب", invited: "مدعو", active: "نشط", suspended: "موقوف" },
   emp: { active: "على رأس العمل", on_leave: "في إجازة", transferred: "منقول", ended: "منتهية خدمته", retired: "متقاعد", archived: "مؤرشف" },
@@ -144,7 +144,7 @@ async function boot(page, render, o = {}) {
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
     PK.mountAnnouncements({ sb, system: "core", page: page === "dashboard.html" || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
     if (page === "dashboard.html" || (staffOnly && page === "profile.html")) PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" }); }
-  document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit" });
+  document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: كلمة المرور الافتراضية لكل منسوب، ولمدير النواة آخر العمليات على سجلات النواة من غيره (مجمّعة)، و«مشاهدة الكل» سجل العمليات
