@@ -1069,7 +1069,7 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
 
 /* ===== قائمة الجوال للوحة التحكم: زر «القائمة» + لائحة عمودية كاملة بدل الشريط الأفقي المقصوص ===== */
 .dmb{display:none}
-@media (max-width:760px){
+@media (max-width:1200px){
   .dn{flex-wrap:wrap;gap:8px;padding-block:8px}
   .dmb{display:inline-flex;align-items:center;gap:8px;flex:1 1 0;min-width:0;min-height:44px;padding:0 14px;border-radius:14px;font:inherit;font-weight:700;font-size:.95rem;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);cursor:pointer;text-align:start}
   .dmb:hover,.dnav.open .dmb{background:rgba(255,255,255,.2)}
@@ -1088,9 +1088,9 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
   .dnav-in a.on{background:rgba(255,255,255,.16);box-shadow:inset -4px 0 0 #f0b34a}
   .dnav-in a.on::after{display:none}
   .dnav .pk-more{display:none!important}
-  .dn .ub a.ub-u{display:none}
   .dmb{flex:1 1 120px}
 }
+@media (max-width:760px){.dn .ub a.ub-u{display:none}}
 @media (prefers-reduced-motion:reduce){.dnav.open .dnav-in{animation:none}}
 
 /* الملف المهني في حسابي (عرض فقط) */

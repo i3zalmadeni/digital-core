@@ -131,10 +131,10 @@ async function boot(page, render, o = {}) {
     d.querySelector(".dnav-in").addEventListener("click", (e) => { if (e.target.closest("a")) set(false); });
     document.addEventListener("click", (e) => { if (!d.contains(e.target)) set(false); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && d.classList.contains("open")) { set(false); b.focus(); } });
-    matchMedia("(min-width:761px)").addEventListener("change", (m) => { if (m.matches) set(false); });
+    matchMedia("(min-width:1201px)").addEventListener("change", (m) => { if (m.matches) set(false); });
   })();
   if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "core", central: true, after: "#main" });
-  if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
+  if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"), { minWidth: 1201 });
     PK.mountAnnouncements({ sb, system: "core", page: page === "dashboard.html" || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
     if (page === "dashboard.html" || (staffOnly && page === "profile.html")) PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" }); }
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-nu-latn", { hour: "numeric", minute: "2-digit" });
