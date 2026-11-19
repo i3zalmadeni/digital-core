@@ -219,16 +219,23 @@ async function lbeedPage(m) {
       <div class="sb"><div class="stk" aria-hidden="true"><i class="g" style="width:${(100 * (at.present || 0)) / tot}%"></i><i class="y" style="width:${(100 * ex) / tot}%"></i><i class="r" style="width:${(100 * un) / tot}%"></i></div><div class="lb-leg"><span><i style="background:#3ed598"></i>حاضر</span><span><i style="background:#f0b34a"></i>بعذر</span><span><i style="background:#ff7a66"></i>بدون عذر</span></div></div></div></div></section>`;
   }
 
-  /* ----- مؤشرات المدرسة: أعمدة اكتمال المجالات ----- */
-  function indCard(ind) {
-    const doms = ind.domains || [], PAL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f", "#0da9a6", "#c98a1b"], ov = ind.total ? Math.round((100 * ind.approved) / ind.total) : 0;
-    const head = `<div class="dh"><span class="ico b">${ic("task")}</span><div><h4>مؤشرات المدرسة${ind.cycle ? " · " + esc(ind.cycle) : ""}</h4><p>${ind.has_cycle ? `اكتمال كل مجال بحسب المؤشرات المعتمدة · تغيّر ${num(ind.changed_7d)} خلال 7 أيام` : "لا توجد دورة تقويم نشطة"}</p></div><a href="/self-evaluation/admin.html">فتح التقويم الذاتي</a></div>`;
-    if (!doms.length) return `<section class="lb-p lb-ind">${head}${em("لا مجالات للعرض.")}</section>`;
-    const col = (x, i) => { const p = x.total ? Math.round((100 * x.approved) / x.total) : 0, e = x.total ? Math.round((100 * Math.max(x.evaluated, x.approved)) / x.total) : 0, c = PAL[i % PAL.length]; return `<a class="co" href="/self-evaluation/admin.html" style="--c:${c};--i:${i}" title="${esc(x.name)}: ${num(x.approved)} معتمد من ${num(x.total)} مؤشراً"><b class="v">${num(p)}%</b><span class="bar"><i class="ev" style="--h:${e}%"></i><i class="ap" style="--h:${p}%"></i></span><span class="nm">${esc(x.name)}</span><small>${num(x.approved)}/${num(x.total)} مؤشراً</small></a>`; };
-    return `<section class="lb-p lb-ind">${head}<div class="ig"><div class="ovr"><div class="rg"><svg viewBox="0 0 42 42" width="150" height="150" aria-hidden="true"><circle class="tk" cx="21" cy="21" r="15.9155"/><circle class="pr" cx="21" cy="21" r="15.9155" pathLength="100" style="--p:${ov};stroke:#0f8a94"/></svg><div class="ct"><b class="cu" data-cu="${ov}" data-sfx="%">0</b><span>اكتمال المدرسة</span></div></div><small>${num(ind.approved)} معتمد من ${num(ind.total)} مؤشراً</small>
+  /* ----- مؤشرات المدرسة: اختيار مجال يغيّر الحلقة والأرقام في مكانها ----- */
+  let IND = {}, DSEL = null;
+  const IPAL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f", "#0da9a6", "#c98a1b"];
+  function indInner() {
+    const ind = IND, doms = ind.domains || [], di = DSEL != null ? doms.findIndex((x) => x.name === DSEL) : -1, d = di >= 0 ? doms[di] : null; if (!d) DSEL = null;
+    const T = d ? { total: d.total || 0, approved: d.approved || 0, ev: Math.max(d.evaluated || 0, d.approved || 0) } : { total: ind.total || 0, approved: ind.approved || 0, ev: doms.reduce((a, x) => a + Math.max(x.evaluated || 0, x.approved || 0), 0) };
+    const ov = pctOf(T.approved, T.total), evp = pctOf(T.ev, T.total), rc = d ? IPAL[di % IPAL.length] : "#0f8a94";
+    const head = `<div class="dh"><span class="ico b">${ic("task")}</span><div><h4>مؤشرات المدرسة${ind.cycle ? " · " + esc(ind.cycle) : ""}${d ? " · " + esc(d.name) : ""}</h4><p>${d ? "المؤشرات الآن لهذا المجال وحده · اضغط عليه مرة أخرى للعودة إلى المدرسة" : ind.has_cycle ? `اكتمال كل مجال بحسب المؤشرات المعتمدة · تغيّر ${num(ind.changed_7d)} خلال 7 أيام · اضغط على أي مجال لتتغير المؤشرات بحسبه` : "لا توجد دورة تقويم نشطة"}</p></div><a href="/self-evaluation/admin.html">فتح التقويم الذاتي</a></div>`;
+    if (!doms.length) return `${head}${em("لا مجالات للعرض.")}`;
+    const col = (x, i) => { const p = pctOf(x.approved, x.total), e = pctOf(Math.max(x.evaluated, x.approved), x.total), on = d === x; return `<button type="button" class="co ${on ? "on" : d ? "dim" : ""}" data-dm="${i}" aria-pressed="${on}" style="--c:${IPAL[i % IPAL.length]};--i:${i}" title="${esc(x.name)}: ${num(x.approved)} معتمد من ${num(x.total)} مؤشراً"><b class="v">${num(p)}%</b><span class="bar"><i class="ev" style="--h:${e}%"></i><i class="ap" style="--h:${p}%"></i></span><span class="nm">${esc(x.name)}</span><small>${num(x.approved)}/${num(x.total)} مؤشراً</small></button>`; };
+    return `${head}<div class="ig"><div class="ovr" data-focus><div class="rg"><svg viewBox="0 0 42 42" width="150" height="150" aria-hidden="true"><circle class="tk" cx="21" cy="21" r="15.9155"/><circle class="pr" cx="21" cy="21" r="15.9155" pathLength="100" data-ring style="--p:${ov};stroke:${rc};stroke-dasharray:${ov} 100"/></svg><div class="ct"><b class="cu" data-cu="${ov}" data-sfx="%">0</b><span>${d ? "اكتمال المجال" : "اكتمال المدرسة"}</span></div></div><small>${num(T.approved)} معتمد من ${num(T.total)} مؤشراً</small>
+      <div class="ikk">${tile(T.approved, "معتمد", "g")}${tile(Math.max(0, T.ev - T.approved), "مقيَّم ينتظر الاعتماد", "b")}${tile(Math.max(0, T.total - T.ev), "لم يُقيَّم", T.total - T.ev > 0 ? "y" : "")}<div class="tl2"><b>${num(evp)}%</b><span>نسبة التقييم</span></div></div>
       <div class="lg"><span><i class="s1"></i>معتمد</span><span><i class="s2"></i>مقيَّم</span></div></div>
-      <div class="cols" role="img" aria-label="أعمدة اكتمال مجالات المؤشرات"><div class="grid"><i>100%</i><i>50%</i><i>0</i></div>${doms.map(col).join("")}</div></div></section>`;
+      <div class="cols" role="group" aria-label="مجالات المؤشرات، اضغط على مجال لعرض مؤشراته"><div class="grid"><i>100%</i><i>50%</i><i>0</i></div>${doms.map(col).join("")}</div></div>`;
   }
+  function indCard(ind) { IND = ind || {}; return `<section class="lb-p lb-ind" id="lbInd">${indInner()}</section>`; }
+  const reInd = () => swap("lbInd", indInner(), [".cols"]);
 
   /* ----- آخر ما أُضيف من نمو مهني ----- */
   const GK = { course: "دورة", training: "دورة تدريبية", workshop: "ورشة عمل", visit: "زيارة", publication: "منشور", award: "جائزة", conference: "مؤتمر", certificate: "شهادة", other: "نشاط" };
@@ -246,7 +253,7 @@ async function lbeedPage(m) {
   }
   /* ----- برامج هذا الأسبوع ----- */
   let PO = null;
-  /* ===== نوافذ التفاصيل داخل اللوحة: لا انتقال إلى صفحة النظام إلا بزر «انتقل إلى …» ===== */
+  /* ===== البطاقات التفاعلية: الضغط على عنصر داخل البطاقة يغيّر مؤشراتها في مكانها، بلا نوافذ منبثقة ===== */
   let PD = [], CD = [], WP = [], DLG2 = null;
   const PCOL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f", "#0da9a6", "#c98a1b"];
   const openDlg = (html) => { if (!DLG2) { DLG2 = document.createElement("dialog"); DLG2.className = "lb-dlg lb-dlg2"; DLG2.addEventListener("click", (ev) => { if (ev.target === DLG2) DLG2.close(); }); m.querySelector(".lb").appendChild(DLG2); } DLG2.innerHTML = html; lbX(DLG2); if (DLG2.showModal) { if (!DLG2.open) DLG2.showModal(); } else DLG2.setAttribute("open", ""); DLG2.scrollTop = 0; };
@@ -256,37 +263,52 @@ async function lbeedPage(m) {
   const prange = (d, u) => (d ? (u && u !== d ? `${fmt(d)} – ${fmt(u)}` : fmt(d)) : "بلا موعد");
   const PST = { done: ["منفّذ", "g"], run: ["قيد التنفيذ", "b"], late: ["متعثر", "r"], new: ["لم يبدأ", ""] };
   const SYSN = [["/smart-plans", "الخطط الذكية"], ["/teachers-community", "المجتمع المهني الذكي"], ["/self-evaluation", "التقويم الذاتي"], ["/qiyami", "قيمي"], ["/facility-booking", "احجز مرفق"], ["/indibati", "انضباطي"], ["/report", "النواة الرقمية"]];
+  const pctOf = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+  const sumOf = (xs, k) => xs.reduce((a, x) => a + (Number(x[k]) || 0), 0);
+  const selBtn = (on, attr, label, sub) => `<button type="button" class="sela ${on ? "on" : ""}" ${attr} aria-pressed="${on}"><b>${label}</b><small>${sub}</small></button>`;
+  /* يعيد رسم محتوى بطاقة في مكانها، ويحافظ على موضع التمرير الأفقي، ويحرّك الحلقة من قيمتها السابقة */
+  function swap(id, html, keep) {
+    const el = m.querySelector("#" + id); if (!el) return;
+    const sc = {}; (keep || []).forEach((q) => { const x = el.querySelector(q); if (x) sc[q] = x.scrollLeft; });
+    const r0 = el.querySelector("[data-ring]"), from = r0 ? r0.style.strokeDasharray : null;
+    el.innerHTML = html;
+    Object.entries(sc).forEach(([q, v]) => { const x = el.querySelector(q); if (x) x.scrollLeft = v; });
+    const r1 = el.querySelector("[data-ring]");
+    if (r1 && from && !matchMedia("(prefers-reduced-motion:reduce)").matches) { const to = r1.style.strokeDasharray; r1.style.transition = "none"; r1.style.strokeDasharray = from; r1.getBoundingClientRect(); r1.style.transition = ""; r1.style.strokeDasharray = to; }
+    el.querySelectorAll(".cu").forEach((x) => countUp(x, x.dataset.cu));
+    const f = el.querySelector("[data-focus]"); if (f && f.getBoundingClientRect().top < 0) f.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
 
-  function plansList() {
-    if (!PD.length) return `<div class="lb-em">لا خطط مسجلة بعد.</div>`;
-    return `<div class="plg">${PD.map((p, i) => { const pct = p.total ? Math.round((100 * p.done) / p.total) : 0; return `<button type="button" class="plc" data-pl="${i}" style="--c:${PCOL[i % PCOL.length]}"><span class="top"><b>${esc(p.name)}</b>${p.late ? `<em class="bad">${num(p.late)} متعثر</em>` : ""}</span><span class="own">${pav(p.owner, p.owner_photo, "s")}<small>${esc(p.owner || "بلا مسؤول")}</small></span><span class="lb-bar"><i style="width:${pct}%"></i></span><span class="pcs"><i>${num(p.total)} برنامجاً</i><i>${num(p.done)} منفّذ</i><i>${num(p.documented)} موثق</i></span></button>`; }).join("")}</div>`;
+  /* ----- الخطط الذكية: اختيار خطة يغيّر الحلقة والمؤشرات والبرامج، والضغط على مؤشر يفرز البرامج ----- */
+  let PSEL = { k: null, f: null, pj: null }, LWK = { events: [] };
+  const PKF = [["all", "برنامجاً", ""], ["done", "منفّذ", ""], ["run", "قيد التنفيذ", ""], ["late", "متعثر", "lt"], ["doc", "موثق", ""], ["und", "ينتظر التوثيق", "lt"]];
+  const PFN = { all: "كل البرامج", done: "المنفّذة", run: "قيد التنفيذ", late: "المتعثرة", doc: "الموثقة", und: "تنتظر التوثيق" };
+  const pOk = (g, f) => f === "all" || (f === "doc" ? !!g.documented : f === "und" ? g.state === "done" && !g.documented : g.state === f);
+  const pRow = (g) => { const st = PST[g.state] || ["", ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${st[0]}</span><div class="tx"><b>${esc(g.name)}</b><small>${esc(prange(g.day, g.until))}${g.beneficiary ? " · المستفيد: " + esc(g.beneficiary) : ""}</small>${g.plan ? `<small>الخطة: ${esc(g.plan)}</small>` : ""}${g.owner ? `<small class="ow">${pav(g.owner, g.photo, "xs")}${esc(g.owner)}</small>` : ""}</div><span class="dchip ${g.documented ? "ok" : ""}">${g.documented ? "موثق" : "غير موثق"}</span></li>`; };
+  function progInner() {
+    const ps = (LWK.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day))); WP = ps;
+    const pi = PSEL.k != null ? PD.findIndex((x) => x.name === PSEL.k) : -1, p = pi >= 0 ? PD[pi] : null; if (!p) PSEL.k = null;
+    const o0 = PO || { total: 0, done: 0, running: 0, late: 0 };
+    const o = p ? { all: p.total, done: p.done, run: p.running, late: p.late, doc: p.documented, und: p.undocumented } : { all: o0.total, done: o0.done, run: o0.running, late: o0.late, doc: sumOf(PD, "documented"), und: sumOf(PD, "undocumented") };
+    const col = p ? PCOL[pi % PCOL.length] : "var(--brand)", pct = pctOf(o.done, o.all), dpc = pctOf(o.doc, o.all), C = 2 * Math.PI * 52;
+    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية${p ? " · " + esc(p.name) : ""}</h4><p>${p ? "المؤشرات الآن لهذه الخطة وحدها · اضغط على أي مؤشر لفرز برامجها" : "اضغط على أي خطة لتتغير المؤشرات بحسبها، وعلى أي مؤشر لفرز البرامج"}</p></div><a href="/smart-plans/">انتقل إلى الخطط</a></div>`;
+    const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" data-ring style="stroke:${col};stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>${p ? "إنجاز الخطة" : "نسبة الإنجاز"}</span></div></div>`;
+    const kp = `<div class="pgk" role="group" aria-label="فرز البرامج حسب المؤشر">${PKF.map(([k, l, c]) => `<button type="button" data-pf="${k}" class="${c && o[k] ? c : ""} ${PSEL.f === k ? "on" : ""}" aria-pressed="${PSEL.f === k}"><b>${num(o[k])}</b>${l}</button>`).join("")}</div>`;
+    const focus = p ? `<div class="pfo" style="--c:${col}">${pav(p.owner, p.owner_photo, "l")}<div class="tx"><small>مسؤول الخطة${p.year ? " · " + esc(p.year) : ""}</small><b>${esc(p.owner || "لم يُحدَّد")}</b>${p.owner_job ? `<small>${esc(p.owner_job)}</small>` : ""}${p.desc ? `<p>${esc(String(p.desc).slice(0, 220))}</p>` : ""}</div><div class="bars2"><div><span>نسبة التنفيذ <b>${num(pct)}%</b></span><div class="lb-bar"><i style="width:${pct}%"></i></div></div><div><span>نسبة التوثيق <b>${num(dpc)}%</b></span><div class="lb-bar"><i style="width:${dpc}%"></i></div></div></div></div>` : "";
+    const list = PD.length ? `<div class="plg">${selBtn(!p, 'data-pl="-1"', "كل الخطط", `${num(PD.length)} خطط · ${num(o0.total)} برنامجاً`)}${PD.map((x, i) => { const on = p === x, pc = pctOf(x.done, x.total); return `<button type="button" class="plc ${on ? "on" : p ? "dim" : ""}" data-pl="${i}" aria-pressed="${on}" style="--c:${PCOL[i % PCOL.length]}"><span class="top"><b>${esc(x.name)}</b>${x.late ? `<em class="bad">${num(x.late)} متعثر</em>` : ""}</span><span class="own">${pav(x.owner, x.owner_photo, "s")}<small>${esc(x.owner || "بلا مسؤول")}</small></span><span class="lb-bar"><i style="width:${pc}%"></i></span><span class="pcs"><i>${num(x.total)} برنامجاً</i><i>${num(x.done)} منفّذ</i><i>${num(x.documented)} موثق</i></span></button>`; }).join("")}</div>` : `<div class="lb-em">لا خطط مسجلة بعد.</div>`;
+    let bottom;
+    if (!p && PSEL.f == null) {
+      const e = PSEL.pj != null ? ps[PSEL.pj] : null;
+      const det = e ? `<div class="pgd" style="--c:${COL.plans}"><b>${esc(e.title)}</b><dl>${[["الموعد", `${dayName(e.day)} · ${prange(e.day, e.until)}`], ["المسؤول", e.owner], ["المستفيد", e.beneficiary], ["المكان", e.place || e.location], ["الحالة", e.status]].filter((r) => r[1]).map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl><a class="go" href="${esc(e.link || "/smart-plans/")}">${ic("up")} انتقل إلى البرنامج في الخطط الذكية</a></div>` : "";
+      bottom = `<h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${ps.length ? `<div class="pgl">${ps.map((x, j) => `<button type="button" class="pgc ${PSEL.pj === j ? "on" : ""}" data-pj="${j}" aria-expanded="${PSEL.pj === j}"><span class="dy"><b>${num(new Date(x.day + "T12:00:00").getDate())}</b><small>${esc(dayName(x.day))}</small></span><span class="tx"><b>${esc(x.title)}</b><small>${x.until && x.until !== x.day ? `حتى ${esc(fmt(x.until))}` : "يوم واحد"}${x.owner ? " · " + esc(x.owner) : ""}</small>${x.beneficiary ? `<small>المستفيد: ${esc(x.beneficiary)}</small>` : ""}</span></button>`).join("")}</div>${det}` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`}`;
+    } else {
+      const f = PSEL.f || "all", src = p ? (p.programs || []) : PD.flatMap((x) => (x.programs || []).map((g) => ({ ...g, plan: x.name }))), L = src.filter((g) => pOk(g, f));
+      bottom = `<h5 class="pgh">${p ? "برامج الخطة" : "البرامج في كل الخطط"} · ${PFN[f]} · ${num(L.length)}${f !== "all" || !p ? ` <button type="button" class="pclr" data-pf="${f}">إلغاء الفرز</button>` : ""}</h5>${L.length ? `<ul class="pgl2">${L.map(pRow).join("")}</ul>` : `<div class="lb-em">لا برامج ${f === "all" ? "" : PFN[f] + " "}${p ? "في هذه الخطة" : ""}.</div>`}`;
+    }
+    return `${head}<div class="pgt" data-focus>${ring}<div class="pgm">${kp}</div></div>${focus}<h5 class="pgh">الخطط · ${num(PD.length)}</h5>${list}${bottom}`;
   }
-  function planDlg(i) {
-    const p = PD[i]; if (!p) return; const col = PCOL[i % PCOL.length], pct = p.total ? Math.round((100 * p.done) / p.total) : 0, dpc = p.total ? Math.round((100 * p.documented) / p.total) : 0;
-    const rows = (p.programs || []).map((g) => { const st = PST[g.state] || ["", ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${st[0]}</span><div class="tx"><b>${esc(g.name)}</b><small>${esc(prange(g.day, g.until))}${g.beneficiary ? " · المستفيد: " + esc(g.beneficiary) : ""}</small>${g.owner ? `<small class="ow">${pav(g.owner, g.photo, "xs")}${esc(g.owner)}</small>` : ""}</div><span class="dchip ${g.documented ? "ok" : ""}">${g.documented ? "موثق" : "غير موثق"}</span></li>`; }).join("");
-    openDlg(`<div class="hd" style="--c:${col}"><span class="ty">خطة ذكية${p.year ? " · " + esc(p.year) : ""}</span><h3>${esc(p.name)}</h3>${p.desc ? `<p class="dsc">${esc(p.desc)}</p>` : ""}</div>
-      <div class="ownr">${pav(p.owner, p.owner_photo, "l")}<div><small>مسؤول الخطة</small><b>${esc(p.owner || "لم يُحدَّد")}</b>${p.owner_job ? `<small>${esc(p.owner_job)}</small>` : ""}</div></div>
-      <div class="tls">${tile(p.total, "إجمالي البرامج")}${tile(p.done, "المنفّذ", "g")}${tile(p.running, "قيد التنفيذ", "b")}${tile(p.late, "المتعثر", p.late ? "r" : "")}${tile(p.documented, "الموثق", "g")}${tile(p.undocumented, "منفّذ ينتظر التوثيق", p.undocumented ? "y" : "")}</div>
-      <div class="bars2"><div><span>نسبة التنفيذ <b>${num(pct)}%</b></span><div class="lb-bar"><i style="width:${pct}%"></i></div></div><div><span>نسبة التوثيق <b>${num(dpc)}%</b></span><div class="lb-bar"><i style="width:${dpc}%"></i></div></div></div>
-      <h5 class="sh">برامج الخطة · ${num((p.programs || []).length)}</h5>${rows ? `<ul class="pgl2">${rows}</ul>` : `<div class="lb-em">لا برامج في هذه الخطة بعد.</div>`}
-      ${goBtn("/smart-plans/", "انتقل إلى الخطط الذكية")}`);
-  }
-  function progDlg(j) {
-    const e = WP[j]; if (!e) return; const st = PST[e.state === "ended" ? "done" : e.state === "running" ? "run" : "new"] || ["", ""];
-    const rows = [["الموعد", `${dayName(e.day)} · ${prange(e.day, e.until)}`], ["المسؤول", e.owner], ["المستفيد", e.beneficiary], ["المكان", e.place || e.location], ["الحالة", e.status]].filter((r) => r[1]);
-    openDlg(`<div class="hd" style="--c:${COL.plans}"><span class="ty">برنامج</span><h3>${esc(e.title)}</h3></div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>${goBtn(e.link || "/smart-plans/", "انتقل إلى الخطط الذكية")}`);
-  }
-  function progCard(wk) {
-    const o = PO || { total: 0, done: 0, running: 0, late: 0, plans: [] }, ps = (wk.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day)));
-    WP = ps;
-    const pct = o.total ? Math.round((100 * o.done) / o.total) : 0, C = 2 * Math.PI * 52;
-    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية</h4><p>اضغط على أي خطة لترى مسؤولها وبرامجها ونسب إنجازها وتوثيقها</p></div><a href="/smart-plans/">انتقل إلى الخطط</a></div>`;
-    const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" style="stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>نسبة الإنجاز</span></div></div>`;
-    const doc = PD.reduce((a, x) => a + (x.documented || 0), 0), und = PD.reduce((a, x) => a + (x.undocumented || 0), 0);
-    const kp = `<div class="pgk"><span><b>${num(o.total)}</b>برنامجاً</span><span><b>${num(o.done)}</b>منفّذ</span><span><b>${num(o.running)}</b>قيد التنفيذ</span><span class="${o.late ? "lt" : ""}"><b>${num(o.late)}</b>متعثر</span><span><b>${num(doc)}</b>موثق</span><span class="${und ? "lt" : ""}"><b>${num(und)}</b>ينتظر التوثيق</span></div>`;
-    const wkl = ps.length ? `<div class="pgl">${ps.map((e, j) => `<button type="button" class="pgc" data-pj="${j}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span></button>`).join("")}</div>` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`;
-    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}</div></div><h5 class="pgh">الخطط · ${num(PD.length)}</h5>${plansList()}<h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
-  }
+  function progCard(wk) { if (wk) LWK = wk; return `<section class="lb-p lb-pg" id="lbPg">${progInner()}</section>`; }
+  const rePg = () => swap("lbPg", progInner(), [".plg", ".pgl"]);
   /* ----- الحجوزات حسب الحصص ----- */
   function periodsCard(pd) {
     const ps = pd.periods || [], taken = ps.filter((p) => (p.bookings || []).length).length;
@@ -294,30 +316,30 @@ async function lbeedPage(m) {
     const stl = { running: ["جارية الآن", "g"], upcoming: ["قادمة", "b"], ended: ["انتهت", ""] };
     return `<section class="lb-p lb-bk">${head}<div class="pdg">${ps.map((p) => { const bk = p.bookings || [], s = stl[p.state] || ["", ""]; return `<article class="pc ${esc(p.state)} ${bk.length ? "has" : "empty"}"><div class="ph"><b>${esc(p.name)}</b><small>${esc(tm2(p.from))} – ${esc(tm2(p.to))}</small><span class="lb-st ${s[1]}">${s[0]}</span></div>${bk.length ? bk.map((x) => `<div class="bi ${x.status === "pending" ? "pend" : ""}"><b>${esc(x.facility)}</b><small>${esc(x.who || "")}${x.purpose ? " · " + esc(x.purpose) : ""}</small>${x.status === "pending" ? `<em>بانتظار الاعتماد</em>` : ""}</div>`).join("") : `<div class="fr0"><span>فارغة</span><small>متاحة للحجز</small></div>`}</article>`; }).join("")}</div></section>`;
   }
-  /* ----- المجتمعات المهنية ----- */
+  /* ----- المجتمعات المهنية: اختيار مجتمع يغيّر المؤشرات واللقاءات وآخر الأحداث في مكانها ----- */
   const CKIND = { plc: "مجتمع تعلم مهني", team: "فريق عمل", committee: "لجنة" };
   const AK = { meeting: ["لقاء", "b"], attendance: ["حضور", "g"], approval: ["اعتماد حضور", "g"], doc: ["توثيق", "y"], minutes: ["محضر", "p"], task: ["مهمة", ""], post: ["منشور", ""], output: ["مخرج", "p"] };
   const MST = { held: ["نُفِّذ", "g"], planned: ["مجدول", "b"], cancelled: ["ملغى", "r"], postponed: ["مؤجل", "y"] };
-  function commDlg(i) {
-    const c = CD[i]; if (!c) return;
-    const meet = (c.meetings || []).map((x) => { const st = MST[x.status] || [x.status, ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${esc(st[0])}</span><div class="tx"><b>${x.no ? "اللقاء " + num(x.no) + " · " : ""}${esc(x.title)}</b><small>${esc(dt(x.at))}${x.location ? " · " + esc(x.location) : ""}</small>${x.status === "held" || x.invited ? `<small>الحضور: ${num(x.present)} من ${num(x.invited)}${x.images ? " · " + num(x.images) + " صورة موثقة" : ""}</small>` : ""}${x.decisions ? `<small class="dc2">القرارات: ${esc(String(x.decisions).slice(0, 140))}</small>` : ""}</div><span class="dchip ${x.documented ? "ok" : ""}">${x.documented ? "موثق" : x.status === "held" ? "غير موثق" : "—"}</span>${x.minutes ? `<span class="dchip ${x.minutes === "approved" ? "ok" : ""}">${x.minutes === "approved" ? "محضر معتمد" : "محضر قيد الاعتماد"}</span>` : ""}</li>`; }).join("");
-    const act = (c.activity || []).map((a) => { const k = AK[a.kind] || [a.kind, ""]; return `<li class="act"><span class="kd2 ${k[1]}">${esc(k[0])}</span><div class="tx"><b>${esc(a.text)}</b><small>${a.who ? esc(a.who) + " · " : ""}${REL(a.at)}</small></div></li>`; }).join("");
-    const mem = (c.member_list || []).map((x) => `<span class="mchip">${pav(x.name, x.photo, "xs")}${esc(x.name)}${x.role === "leader" ? "<em>قائد</em>" : ""}</span>`).join("");
-    openDlg(`<div class="hd" style="--c:${COL.community}"><span class="ty">${esc(CKIND[c.kind] || c.kind || "مجتمع مهني")}${c.domain ? " · " + esc(c.domain) : ""}</span><h3>${esc(c.name)}</h3>${c.description ? `<p class="dsc">${esc(String(c.description).slice(0, 220))}</p>` : ""}</div>
-      <div class="ownr">${pav(c.leader, c.leader_photo, "l")}<div><small>قائد المجتمع</small><b>${esc(c.leader || "لم يُحدَّد")}</b><small>${num(c.members)} عضواً${c.start_on ? " · منذ " + esc(fmt(c.start_on)) : ""}</small></div></div>
-      <div class="tls">${tile(c.meetings_held, "لقاءات منفّذة", "g")}${tile(c.meetings_upcoming, "لقاءات قادمة", "b")}${tile(c.docs, "لقاءات موثقة", "g")}${tile(c.minutes_approved, "محاضر معتمدة", "g")}${tile(c.att_present, "حضور مسجّل")}${tile(c.hours, "ساعات حضور معتمدة")}${tile(c.tasks_open, "مهام مفتوحة", c.tasks_late ? "y" : "")}${tile(c.tasks_late, "مهام متأخرة", c.tasks_late ? "r" : "")}${tile(c.posts + c.outputs, "منشورات ومخرجات")}</div>
-      <h5 class="sh">اللقاءات · ${num(c.meetings_total)}</h5>${meet ? `<ul class="pgl2">${meet}</ul>` : `<div class="lb-em">لا لقاءات مسجلة بعد.</div>`}
-      <h5 class="sh">ماذا يحدث في المجتمع</h5>${act ? `<ul class="acl">${act}</ul>` : `<div class="lb-em">لا نشاط مسجل بعد.</div>`}
-      ${mem ? `<h5 class="sh">الأعضاء · ${num(c.members)}</h5><div class="mem">${mem}</div>` : ""}
-      ${goBtn(c.link || "/teachers-community/", "انتقل إلى المجتمع المهني الذكي")}`);
+  let CSEL = null;
+  function commInner() {
+    const cs = CD, ci = CSEL != null ? cs.findIndex((x) => x.name === CSEL) : -1, c = ci >= 0 ? cs[ci] : null; if (!c) CSEL = null;
+    const K = ["meetings_held", "meetings_upcoming", "docs", "minutes_approved", "att_present", "hours", "tasks_open", "tasks_late", "posts", "outputs", "members"], v = c || {}; if (!c) K.forEach((k) => (v[k] = sumOf(cs, k)));
+    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية${c ? " · " + esc(c.name) : ""}</h4><p>${c ? "المؤشرات والأحداث الآن لهذا المجتمع وحده" : `${num(cs.length)} مجتمعاً نشطاً · اضغط على أي مجتمع لتتغير المؤشرات بحسبه`}</p></div><a href="${esc(c && c.link ? c.link : "/teachers-community/#/communities")}">انتقل إلى ${c ? "المجتمع" : "المجتمعات"}</a></div>`;
+    const tiles = `<div class="cmk" data-focus>${tile(v.meetings_held, "لقاءات منفّذة", "g")}${tile(v.meetings_upcoming, "لقاءات قادمة", "b")}${tile(v.docs, "لقاءات موثقة", "g")}${tile(v.minutes_approved, "محاضر معتمدة", "g")}${tile(v.att_present, "حضور مسجّل")}${tile(v.hours, "ساعات حضور معتمدة")}${tile(v.tasks_open, "مهام مفتوحة", v.tasks_late ? "y" : "")}${tile(v.tasks_late, "مهام متأخرة", v.tasks_late ? "r" : "")}${tile((v.posts || 0) + (v.outputs || 0), "منشورات ومخرجات")}${c ? "" : tile(v.members, "عضوية")}</div>`;
+    let focus = "";
+    if (c) {
+      const meet = (c.meetings || []).map((x) => { const st = MST[x.status] || [x.status, ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${esc(st[0])}</span><div class="tx"><b>${x.no ? "اللقاء " + num(x.no) + " · " : ""}${esc(x.title)}</b><small>${esc(dt(x.at))}${x.location ? " · " + esc(x.location) : ""}</small>${x.status === "held" || x.invited ? `<small>الحضور: ${num(x.present)} من ${num(x.invited)}${x.images ? " · " + num(x.images) + " صورة موثقة" : ""}</small>` : ""}${x.decisions ? `<small class="dc2">القرارات: ${esc(String(x.decisions).slice(0, 140))}</small>` : ""}</div><span class="dchip ${x.documented ? "ok" : ""}">${x.documented ? "موثق" : x.status === "held" ? "غير موثق" : "—"}</span>${x.minutes ? `<span class="dchip ${x.minutes === "approved" ? "ok" : ""}">${x.minutes === "approved" ? "محضر معتمد" : "محضر قيد الاعتماد"}</span>` : ""}</li>`; }).join("");
+      const mem = (c.member_list || []).map((x) => `<span class="mchip">${pav(x.name, x.photo, "xs")}${esc(x.name)}${x.role === "leader" ? "<em>قائد</em>" : ""}</span>`).join("");
+      focus = `<div class="cfo"><div class="ownr">${pav(c.leader, c.leader_photo, "l")}<div><small>قائد المجتمع · ${esc(CKIND[c.kind] || c.kind || "مجتمع مهني")}${c.domain ? " · " + esc(c.domain) : ""}</small><b>${esc(c.leader || "لم يُحدَّد")}</b><small>${num(c.members)} عضواً${c.start_on ? " · منذ " + esc(fmt(c.start_on)) : ""}</small></div></div>${c.description ? `<p class="dsc">${esc(String(c.description).slice(0, 220))}</p>` : ""}
+        <h5>اللقاءات · ${num(c.meetings_total ?? (c.meetings || []).length)}</h5>${meet ? `<ul class="pgl2">${meet}</ul>` : em("لا لقاءات مسجلة بعد.")}${mem ? `<h5>الأعضاء · ${num(c.members)}</h5><div class="mem">${mem}</div>` : ""}</div>`;
+    }
+    const one = (x, i) => { const on = c === x; return `<button type="button" class="cm ${on ? "on" : c ? "dim" : ""}" data-cm="${i}" aria-pressed="${on}"><span class="ci">${ic("meeting")}</span><b>${esc(x.name)}</b><small>${esc(CKIND[x.kind] || x.kind || "")}${x.leader ? " · القائد: " + esc(x.leader) : ""}</small><span class="cn"><em>${num(x.members)}</em> أعضاء <em>${num(x.meetings_held)}</em> منفّذ <em>${num(x.docs)}</em> موثق</span></button>`; };
+    const evs = (c ? [[c, ci]] : cs.map((x, i) => [x, i])).flatMap(([x, i]) => (x.activity || []).map((a) => ({ ...a, cn: x.name, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, c ? 15 : 10);
+    return `${head}${tiles}${focus}${cs.length ? `<div class="cmg">${selBtn(!c, 'data-cm="-1"', "كل المجتمعات", `${num(cs.length)} مجتمعاً`)}${cs.map(one).join("")}</div>` : em("لا مجتمعات نشطة.")}
+      <div class="ce"><h5>${c ? "ماذا يحدث في المجتمع" : "آخر ما حدث داخل المجتمعات"}</h5>${evs.length ? evs.map((x) => { const k = AK[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" ${c ? "" : `data-cm="${x.i}"`}><span class="kd ${x.kind === "doc" || x.kind === "minutes" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${c ? "" : esc(x.cn)}${x.who ? (c ? "" : " · ") + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div>`;
   }
-  function commCard(cs) {
-    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية</h4><p>${num(cs.length)} مجتمعاً نشطاً · اضغط على أي مجتمع لترى ما يجري فيه</p></div><a href="/teachers-community/#/communities">انتقل إلى المجتمعات</a></div>`;
-    const one = (c, i) => `<button type="button" class="cm" data-cm="${i}"><span class="ci">${ic("meeting")}</span><b>${esc(c.name)}</b><small>${esc(CKIND[c.kind] || c.kind || "")}${c.leader ? " · القائد: " + esc(c.leader) : ""}</small><span class="cn"><em>${num(c.members)}</em> أعضاء <em>${num(c.meetings_held)}</em> منفّذ <em>${num(c.docs)}</em> موثق</span></button>`;
-    const all = cs.flatMap((c, i) => (c.activity || []).map((a) => ({ ...a, cn: c.name, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 10);
-    return `<section class="lb-p dkc lb-cm">${head}${cs.length ? `<div class="cmg">${cs.map(one).join("")}</div>` : em("لا مجتمعات نشطة.")}
-      <div class="ce"><h5>آخر ما حدث داخل المجتمعات</h5>${all.length ? all.map((x) => { const k = AK[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" data-cm="${x.i}"><span class="kd ${x.kind === "doc" || x.kind === "minutes" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${esc(x.cn)}${x.who ? " · " + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div></section>`;
-  }
+  function commCard() { return `<section class="lb-p dkc lb-cm" id="lbCm">${commInner()}</section>`; }
+  const reCm = () => swap("lbCm", commInner(), [".cmg"]);
   /* أي بطاقة أخرى فيها رابط تفتح تفاصيلها هنا أولاً، والانتقال للنظام بزر صريح فقط */
   function genDlg(a) {
     const box = a.closest(".lb-it,.ei,.ui,.gc,.ap,.co,.tp,.sf") || a, href = a.getAttribute("href") || "#";
@@ -326,8 +348,16 @@ async function lbeedPage(m) {
     openDlg(`<div class="hd" style="--c:${esc(col)}"><h3>${esc(title)}</h3></div><ul class="gl3">${lines.filter((l) => l !== title).map((l) => `<li>${esc(l)}</li>`).join("")}</ul>${href && href !== "#" ? goBtn(href, "انتقل إلى " + sys) : ""}`);
   }
   m.addEventListener("click", (ev) => {
-    const t = ev.target.closest("[data-pl],[data-pj],[data-cm]");
-    if (t && !t.closest(".lb-dlg")) { if (t.dataset.pl != null) return planDlg(+t.dataset.pl); if (t.dataset.pj != null) return progDlg(+t.dataset.pj); if (t.dataset.cm != null) return commDlg(+t.dataset.cm); }
+    const t = ev.target.closest("[data-pl],[data-pf],[data-pj],[data-cm],[data-dm],[data-sq]");
+    if (t && !t.closest(".lb-dlg")) {
+      const d = t.dataset;
+      if (d.pl != null) { const x = PD[+d.pl]; PSEL = x && PSEL.k !== x.name ? { k: x.name, f: "all", pj: null } : { k: null, f: null, pj: null }; return rePg(); }
+      if (d.pf != null) { PSEL.f = PSEL.f === d.pf ? (PSEL.k ? "all" : null) : d.pf; PSEL.pj = null; return rePg(); }
+      if (d.pj != null) { PSEL.pj = PSEL.pj === +d.pj ? null : +d.pj; return rePg(); }
+      if (d.cm != null) { const x = CD[+d.cm]; CSEL = x && CSEL !== x.name ? x.name : null; return reCm(); }
+      if (d.dm != null) { const x = (IND.domains || [])[+d.dm]; DSEL = x && DSEL !== x.name ? x.name : null; return reInd(); }
+      if (d.sq != null) return pickSys(d.sq);
+    }
     const a = ev.target.closest("a[href]");
     if (!a || !a.closest(".lb") || a.closest(".lb-dlg") || a.closest(".dh") || a.classList.contains("go") || ev.ctrlKey || ev.metaKey || ev.shiftKey || a.target === "_blank") return;
     ev.preventDefault(); genDlg(a);
@@ -352,20 +382,25 @@ async function lbeedPage(m) {
   const SICO = { core: "school", saas: "check", plans: "plan", community: "users", indibati: "clock", qiyami: "star", booking: "cal" };
   const SDESC = { core: "الهوية الموحدة والسجلات", saas: "المؤشرات والشواهد والتقييم", plans: "الخطط والبرامج وتوثيقها", community: "النمو المهني والمجتمعات", indibati: "الحضور والغياب والتأخر", qiyami: "النقاط والأوسمة والسلوك", booking: "حجز المرافق والقاعات" };
   const SURL = { core: "/digital-core/dashboard.html", saas: "/self-evaluation/admin.html", plans: "/smart-plans/", community: "/teachers-community/", indibati: "/indibati/dashboard.html", qiyami: "/qiyami/leaderboard.html", booking: "/facility-booking/bookings.html" };
-  let SYSI = {};
-  function sysCard(d, pl) {
-    const tot = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1; SYSI = {};
+  let SYSI = {}, SSEL = null, SYSD = null, SFD = {};
+  function sysInner() {
+    const [d, pl] = SYSD, tot = Object.values(pl.by_sys).reduce((a, b) => a + b, 0) || 1; SYSI = {};
     const act = Object.keys(SYS).filter((k) => d.sources && d.sources[k] && (Date.now() - new Date(d.sources[k])) / 864e5 < 2).length;
-    return `<section class="lb-p lb-sys"><div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>حالة الأنظمة</h4><p>${num(act)} أنظمة نشطة من ${num(Object.keys(SYS).length)} · اضغط على أي نظام لتفاصيله</p></div></div><div class="stl">${Object.keys(SYS).map((k) => {
-      const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, st = age < 2 ? ["نشط", "ok"] : age < 7 ? ["هادئ", "mid"] : ["ساكن", "old"], n = pl.by_sys[k] || 0; SYSI[k] = { st, n, v, share: Math.round((100 * n) / tot) };
-      return `<button type="button" class="sq ${st[1]}" data-k="${k}"><span class="bd"><i></i>${st[0]}</span><span class="si">${ico(SICO[k])}</span><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً</small></button>`; }).join("")}</div></section>`;
+    const sq = Object.keys(SYS).map((k) => {
+      const v = d.sources && d.sources[k], age = v ? (Date.now() - new Date(v)) / 864e5 : 99, st = age < 2 ? ["نشط", "ok"] : age < 7 ? ["هادئ", "mid"] : ["ساكن", "old"], n = pl.by_sys[k] || 0, on = SSEL === k; SYSI[k] = { st, n, v, share: Math.round((100 * n) / tot) };
+      return `<button type="button" class="sq ${st[1]} ${on ? "on" : SSEL ? "dim" : ""}" data-sq="${k}" aria-pressed="${on}"><span class="bd"><i></i>${st[0]}</span><span class="si">${ico(SICO[k])}</span><b>${esc(SYS[k])}</b><small>${num(n)} سجلاً</small></button>`; }).join("");
+    const i = SSEL ? SYSI[SSEL] : null; if (SSEL && !i) SSEL = null;
+    const fd = SSEL ? SFD[SSEL] : null, feed = !SSEL ? "" : fd === undefined ? `<small>جارٍ تحميل آخر الأحداث…</small>` : fd === null ? `<small>تعذر تحميل الأحداث.</small>` : fd.length ? fd.map((x) => `<div class="sfi"><b>${esc(x.title)}</b><small>${esc(x.actor || "")}${x.actor ? " · " : ""}${REL(x.at)}</small></div>`).join("") : `<small>لا أحداث حديثة.</small>`;
+    const pan = i ? `<div class="sxp" data-focus><div class="h2"><span class="lb-st ${i.st[1] === "ok" ? "g" : i.st[1] === "mid" ? "y" : ""}">${esc(i.st[0])}</span><b>${esc(SYS[SSEL])}</b><small>${esc(SDESC[SSEL])}</small></div><div class="sx2"><div><b>${num(i.n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(i.v)}</b><span>آخر نشاط</span></div><div><b>${num(i.share)}%</b><span>من حركة المدرسة</span></div></div><h5>آخر الأحداث</h5><div class="sf2">${feed}</div><a class="go" href="${SURL[SSEL]}">${ic("up")} انتقل إلى ${esc(SYS[SSEL])}</a></div>` : "";
+    return `<div class="dh"><span class="ico g">${ic("shield")}</span><div><h4>حالة الأنظمة${SSEL ? " · " + esc(SYS[SSEL]) : ""}</h4><p>${num(act)} أنظمة نشطة من ${num(Object.keys(SYS).length)} · اضغط على أي نظام لتظهر تفاصيله هنا</p></div></div><div class="stl">${sq}</div>${pan}`;
   }
-  async function sysDlg(k) {
-    let dlg = m.querySelector("#lbDlg"); if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "lbDlg"; dlg.className = "lb-dlg"; m.querySelector(".lb").appendChild(dlg); dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); }); }
-    const i = SYSI[k] || { st: ["", ""], n: 0, share: 0 };
-    dlg.innerHTML = `<div class="hd" style="--c:#1d7a4f"><span class="ty">${esc(i.st[0])}</span><h3>${esc(SYS[k])}</h3><p style="margin:4px 0 0;opacity:.9;font-size:.88rem">${esc(SDESC[k])}</p></div><div class="sx2"><div><b>${num(i.n)}</b><span>سجلاً في 14 يوماً</span></div><div><b>${REL(i.v)}</b><span>آخر نشاط</span></div><div><b>${num(i.share)}%</b><span>من حركة المدرسة</span></div></div><div class="sf2" id="sfD"><small>جارٍ تحميل آخر الأحداث…</small></div><div class="ft"><a class="go" href="${SURL[k]}">فتح ${esc(SYS[k])}</a><button type="button" id="dX">إغلاق</button></div>`;
-    dlg.querySelector("#dX").onclick = () => dlg.close(); lbX(dlg); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
-    try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 5, p_offset: 0 }), it = r.items || [], el = dlg.querySelector("#sfD"); if (el) el.innerHTML = it.length ? it.map((x) => `<a href="${esc(x.link || "#")}"><b>${esc(x.title)}</b><small>${esc(x.actor || "")} · ${REL(x.at)}</small></a>`).join("") : `<small>لا أحداث حديثة.</small>`; } catch (e) { const el = dlg.querySelector("#sfD"); if (el) el.innerHTML = `<small>تعذر تحميل الأحداث.</small>`; }
+  function sysCard(d, pl) { SYSD = [d, pl]; SFD = {}; return `<section class="lb-p lb-sys" id="lbSys">${sysInner()}</section>`; }
+  const reSys = () => swap("lbSys", sysInner(), [".stl"]);
+  async function pickSys(k) {
+    SSEL = SSEL === k ? null : k; reSys();
+    if (!SSEL || SFD[k] !== undefined) return;
+    try { const r = await rpc("lb_feed", { p_from: null, p_to: null, p_sys: k, p_kind: null, p_op: null, p_ach: null, p_limit: 5, p_offset: 0 }); SFD[k] = r.items || []; } catch (e) { SFD[k] = null; }
+    if (SSEL === k) reSys();
   }
 
   async function overview() {
@@ -381,12 +416,11 @@ async function lbeedPage(m) {
       ${growthCard(gl || [])}
       ${achCard(ach || [])}
       ${periodsCard(pd || { periods: [] })}
-      ${commCard(CD)}
+      ${commCard()}
       ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
       ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${sysCard(d, pl)}`;
     body.querySelectorAll(".lb-docs .dc").forEach((b) => (b.onclick = () => docDlg(DOCS[+b.dataset.i])));
-    body.querySelectorAll(".sq").forEach((b) => (b.onclick = () => sysDlg(b.dataset.k)));
     body.querySelectorAll(".cu").forEach((el) => countUp(el, el.dataset.cu));
     await calWidget(body.querySelector("#lbCal"));
   }
