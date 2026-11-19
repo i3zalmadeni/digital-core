@@ -166,7 +166,7 @@ async function adminRoute(req: Request, path: string) {
     const password = String(body.password ?? "");
     const isEmail = ident.includes("@");
     if (isEmail ? !EMAIL.test(ident) : !LOGIN_ID.test(ident)) return json({ error: isEmail ? "invalid_email" : "invalid_login_id" }, 400);
-    if (password.length < 10) return json({ error: "password_too_short", min: 10 }, 400);
+    if (password.length < 8) return json({ error: "password_too_short", min: 8 }, 400);
     const contact = isEmail ? "" : String(body.contact_email ?? "").trim().toLowerCase();
     if (contact && !EMAIL.test(contact)) return json({ error: "invalid_email" }, 400);
     if (!isEmail) {
@@ -242,7 +242,7 @@ async function adminRoute(req: Request, path: string) {
   if (path === "/admin/reset-password") {
     if (!s.user_id) return json({ error: "no_account" }, 409);
     const password = String(body.password ?? "");
-    if (password.length < 10) return json({ error: "password_too_short", min: 10 }, 400);
+    if (password.length < 8) return json({ error: "password_too_short", min: 8 }, 400);
     const { error } = await db.auth.admin.updateUserById(s.user_id, { password });
     if (error) return json({ error: error.message }, 400);
     return json({ ok: true });

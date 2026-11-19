@@ -54,7 +54,7 @@ function mapErr(e) {
 async function api(path, body) {
   const { data: { session } } = await sb.auth.getSession();
   const r = await fetch(FN + path, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token, apikey: APP_CONFIG.supabaseKey }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(({ account_exists: "للمنسوب حساب بالفعل", password_too_short: "كلمة المرور أقصر من 10 أحرف", invalid_email: "بريد غير صالح", invalid_login_id: "المعرّف من 3 إلى 40 خانة: أرقام أو حروف إنجليزية، ويمكن استخدام . _ -", login_id_taken: "هذا المعرّف مستخدم لحساب آخر", email_taken: "هذا البريد مستخدم لحساب آخر", email_required: "لا يمكن حذف بريد حساب يدخل بالبريد؛ حوّله إلى معرّف أولاً", no_account: "لا حساب لهذا المنسوب", admin_protected: "هذا حساب محمي: يعدّله مدير النواة فقط", forbidden: "غير مصرح" })[j.error] || j.error || "فشل الطلب"); return j;
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(({ account_exists: "للمنسوب حساب بالفعل", password_too_short: "كلمة المرور أقصر من 8 أحرف", invalid_email: "بريد غير صالح", invalid_login_id: "المعرّف من 3 إلى 40 خانة: أرقام أو حروف إنجليزية، ويمكن استخدام . _ -", login_id_taken: "هذا المعرّف مستخدم لحساب آخر", email_taken: "هذا البريد مستخدم لحساب آخر", email_required: "لا يمكن حذف بريد حساب يدخل بالبريد؛ حوّله إلى معرّف أولاً", no_account: "لا حساب لهذا المنسوب", admin_protected: "هذا حساب محمي: يعدّله مدير النواة فقط", forbidden: "غير مصرح" })[j.error] || j.error || "فشل الطلب"); return j;
 }
 
 // تصدير جدول إلى Excel
@@ -111,7 +111,7 @@ async function boot(page, render, o = {}) {
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
   const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
-  if (staffOnly && !["profile.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
+  if (staffOnly && !["profile.html", "password.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
   const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n) : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
@@ -120,7 +120,7 @@ async function boot(page, render, o = {}) {
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${items.map(([h, n, e, t, , bd]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("")}</div>
-     <div class="dwho">${ubBarHTML(me.full_name, "profile.html#pw", "profile.html#pw")}</div></div></div></header>
+     <div class="dwho">${ubBarHTML(me.full_name, "profile.html", "password.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <div class="wrap" id="topnote"></div><main class="wrap" id="main"></main>${footerHTML}`; bindNav();
@@ -144,7 +144,7 @@ async function boot(page, render, o = {}) {
   ubMount({ key: "core", uid: session.user.id, allUrl: "inbox.html", load: async () => {
     const N = [];
     const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();
-    if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "profile.html#pw", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
+    if (pv?.must_change_password) N.push({ id: "pw", tone: "warn", icon: "lock", href: "password.html", title: "غيّر كلمة المرور الافتراضية", body: "تدخل بكلمة المرور الموحدة. غيّرها من «حسابي» لحماية حسابك." });
     const { data: ap } = await sb.from("assignments").select("id,title,assignment_no,status,assignment_versions(version_no,issued_at,ack_at)").eq("staff_id", me.id).eq("status", "issued");
     (ap || []).forEach((x) => { const v = (x.assignment_versions || []).filter((y) => y.issued_at).sort((p, q) => q.version_no - p.version_no)[0];
       if (v && !v.ack_at) N.push({ id: "asg:" + x.id + ":" + v.version_no, t: v.issued_at, tone: "warn", icon: "file", href: "assignment.html?id=" + x.id, title: v.version_no > 1 ? "تحديث على تكليفك بانتظار إقرارك" : "تكليف جديد بانتظار اطلاعك وإقرارك", body: x.title }); });
@@ -167,9 +167,9 @@ async function boot(page, render, o = {}) {
   const main = document.getElementById("main");
   // تنبيه دائم ما دامت كلمة المرور هي الافتراضية (يختفي بعد تغييرها من «حسابي»)
   sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle().then(({ data }) => {
-    if (!data?.must_change_password || page === "profile.html") return;
+    if (!data?.must_change_password || page === "profile.html" || page === "password.html") return;
     const a = document.createElement("div"); a.className = "alert"; a.setAttribute("role", "status");
-    a.innerHTML = 'تدخل بكلمة المرور الافتراضية. غيّرها من <a href="profile.html#pw"><b>حسابي</b></a> لحماية حسابك.';
+    a.innerHTML = 'تدخل بكلمة المرور الافتراضية. غيّرها من <a href="password.html"><b>تغيير كلمة المرور</b></a> لحماية حسابك.';
     a.style.marginTop = "14px"; document.getElementById("topnote").appendChild(a);
   });
   try { await render(main, ctx); } catch (e) { console.error(e); main.innerHTML = '<p class="err">تعذر تحميل الصفحة.</p>'; }
