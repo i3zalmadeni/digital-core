@@ -108,6 +108,13 @@ boot("access.html", async (m, c) => {
         else if (r?.photo_path && !r.public_photo_path) { const d = await sb.storage.from("registry-media").download(r.photo_path); if (!d.error) base.public_photo_path = await pub(d.data, d.data.type || "image/jpeg"); }
         const res = r ? await sb.from("staff_members").update(base).eq("id", id) : await sb.from("staff_members").insert({ ...base, id, created_by: c.uid });
         if (res.error) throw res.error;
+        // الصورة الموحّدة (تظهر في ملفه المهني بالمجتمع أيضاً)
+        if (file) {
+          const path = `${id}/avatar-${Date.now()}.${file.type.split("/")[1].replace("jpeg", "jpg")}`;
+          const up = await sb.storage.from("pc-avatars").upload(path, file, { contentType: file.type }); if (up.error) throw new Error("تعذّر رفع الصورة الموحّدة: " + up.error.message);
+          const av = await sb.rpc("core_set_staff_avatar", { p_staff: id, p_path: path }); if (av.error) throw av.error;
+          if (av.data?.old && av.data.old !== path) sb.storage.from("pc-avatars").remove([av.data.old]);
+        }
         if (canContact) { const pr = await sb.from("staff_private").upsert({ staff_id: id, employee_no: nn(v.employee_no), email: nn(v.email)?.toLowerCase() ?? null, phone: nn(v.phone) }, { onConflict: "staff_id" }); if (pr.error) throw pr.error; }
       } catch (x) { err.textContent = mapErr(x); return; }
       md.close(); toast("تم الحفظ"); await load(); draw();
