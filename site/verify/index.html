@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../favicon.svg">
+<title>التحقق من التقارير · النواة الرقمية</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<style>
+:root{--ink:#0d2b45;--ink2:#3d566b;--muted:#71859a;--line:#dbe8ec;--brand:#0f8a94;--brand2:#0c6f82;--soft:#eef8fa;--gold:#f0b34a;--ok:#1f7a50;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;font:15px/1.8 Tajawal,"Segoe UI",Tahoma,sans-serif;color:var(--ink);background:#f4f9fa}
+header{background:linear-gradient(135deg,#18a4ab,#0c6f82);color:#fff;padding:18px 16px 26px}
+.hd{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:12px}.hd img{width:46px;height:46px;border-radius:12px;background:#fff;padding:3px}
+.hd b{display:block;font-size:1.15rem}.hd small{opacity:.85}
+main{max-width:980px;margin:-14px auto 30px;padding:0 14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(13,59,102,.07);margin-bottom:14px}
+form{display:flex;gap:8px;flex-wrap:wrap}input{flex:1;min-width:200px;font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;direction:ltr;text-align:center;letter-spacing:1px}
+button{font:inherit;font-weight:800;border:0;border-radius:12px;padding:10px 20px;background:var(--brand2);color:#fff;cursor:pointer}
+.st{display:flex;align-items:center;gap:12px}.st .i{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff}
+.st.ok .i{background:var(--ok)}.st.bad .i{background:var(--bad)}.st h1{margin:0;font-size:1.25rem}.st.ok h1{color:var(--ok)}.st.bad h1{color:var(--bad)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:14px}.kv div{background:var(--soft);border-radius:12px;padding:8px 12px}.kv span{display:block;color:var(--muted);font-size:.82rem}.kv b{word-break:break-word}
+.doc{width:100%;height:80vh;border:1px solid var(--line);border-radius:14px;background:#fff}
+.meta{color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<header><div class="hd"><img src="../assets/core-logo.svg" alt=""><div><b>التحقق من صحة التقارير</b><small>النواة الرقمية · مدرسة لبيد بن ربيعة المتوسطة · لكل تقارير الأنظمة الرقمية</small></div></div></header>
+<main>
+  <section class="card"><form id="f"><input id="c" name="c" placeholder="XXXX-XXXX-XXXX-XXXX" aria-label="رقم التحقق" maxlength="40" autocomplete="off"><button>تحقق</button></form>
+  <p class="meta" style="margin:8px 0 0">امسح رمز QR في تذييل التقرير، أو اكتب رقم التحقق المطبوع بجواره.</p></section>
+  <div id="out"></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../assets/config.js"></script>
+<script>
+(function () {
+  var out = document.getElementById("out"), inp = document.getElementById("c");
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var fmt = function (c) { return c.replace(/(.{4})(?=.)/g, "$1-"); };
+  var clean = function (v) { return String(v || "").replace(/[^0-9A-Fa-f]/g, "").toUpperCase(); };
+  var sb = supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey, );
+  function check(code) {
+    code = clean(code); inp.value = code ? fmt(code) : "";
+    if (code.length !== 16) { out.innerHTML = '<section class="card st bad"><span class="i">!</span><div><h1>رقم التحقق غير مكتمل</h1><p class="meta" style="margin:0">رقم التحقق 16 خانة (أرقام وحروف من A إلى F).</p></div></section>'; return; }
+    out.innerHTML = '<section class="card"><p class="meta" style="margin:0">جارٍ التحقق…</p></section>';
+    sb.rpc("core_verify_report", { p_code: code }).then(function (r) {
+      if (r.error) throw r.error;
+      var d = r.data;
+      if (!d) { out.innerHTML = '<section class="card st bad"><span class="i">✕</span><div><h1>لم يُعثر على تقرير بهذا الرقم</h1><p class="meta" style="margin:0">تأكد من الرقم. التقرير غير المسجل لا يُعدّ صادرًا من أنظمة النواة الرقمية.</p></div></section>'; return; }
+      var at = new Date(d.issued_at).toLocaleString("ar-SA-u-ca-gregory-nu-latn", { dateStyle: "long", timeStyle: "short" });
+      out.innerHTML = '<section class="card"><div class="st ok"><span class="i">✓</span><div><h1>تقرير صحيح وموثّق</h1><p class="meta" style="margin:0">صدر هذا التقرير من ' + esc(d.kind) + '، وهذه نسخته كما صدرت دون تعديل.</p></div></div>' +
+        '<div class="kv"><div><span>عنوان التقرير</span><b>' + esc(d.title) + '</b></div>' + (d.subtitle ? '<div><span>البيان</span><b>' + esc(d.subtitle) + '</b></div>' : "") +
+        '<div><span>النظام</span><b>' + esc(d.system_name || "—") + '</b></div>' + (d.pages ? '<div><span>عدد الصفحات</span><b>' + d.pages + '</b></div>' : "") + '<div><span>صدر بواسطة</span><b>' + esc(d.issuer || "—") + '</b></div><div><span>تاريخ الإصدار</span><b>' + esc(at) + '</b></div><div><span>رقم التحقق</span><b dir="ltr">' + esc(fmt(d.code)) + '</b></div></div></section>' +
+        (d.full && d.html ? '<section class="card"><h2 style="margin:0 0 10px;font-size:1.05rem">نسخة التقرير كما صدرت</h2><iframe class="doc" sandbox title="نسخة التقرير"></iframe>' +
+        '<p class="meta" style="margin:8px 0 0">قارن هذه النسخة بالورقة التي بين يديك: أي اختلاف يعني أن الورقة عُدّلت بعد إصدارها.</p></section>'
+        : '<section class="card"><h2 style="margin:0 0 6px;font-size:1.05rem">نسخة التقرير الكاملة</h2><p class="meta" style="margin:0">' + (d.signed_in ? 'حسابك لا يملك صلاحية الاطلاع على تقارير هذا النظام. البيانات أعلاه تكفي للتأكد من صحة التقرير.' : 'يحتوي هذا التقرير على بيانات خاصة، وتُعرض نسخته الكاملة لمنسوبي المدرسة المصرّح لهم فقط. البيانات أعلاه تكفي للتأكد من صحة التقرير.') + '</p>' +
+          (d.signed_in ? '' : '<p style="margin:10px 0 0"><a href="../login.html?next=' + encodeURIComponent(location.href) + '" style="font-weight:800;color:var(--brand2)">تسجيل الدخول بحساب النواة لعرض النسخة الكاملة</a></p>') + '</section>');
+      var fr = out.querySelector("iframe"); if (fr) fr.srcdoc = d.html;   // معزولة تمامًا: لا تُنفَّذ فيها أي نصوص برمجية
+    }).catch(function () { out.innerHTML = '<section class="card st bad"><span class="i">!</span><div><h1>تعذّر التحقق الآن</h1><p class="meta" style="margin:0">تحقق من الاتصال وأعد المحاولة.</p></div></section>'; });
+  }
+  document.getElementById("f").onsubmit = function (e) { e.preventDefault(); check(inp.value); history.replaceState(null, "", "?c=" + clean(inp.value)); };
+  var q = new URLSearchParams(location.search).get("c"); if (q) check(q);
+})();
+</script>
+</body>
+</html>
