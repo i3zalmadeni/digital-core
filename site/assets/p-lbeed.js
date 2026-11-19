@@ -246,15 +246,46 @@ async function lbeedPage(m) {
   }
   /* ----- برامج هذا الأسبوع ----- */
   let PO = null;
+  /* ===== نوافذ التفاصيل داخل اللوحة: لا انتقال إلى صفحة النظام إلا بزر «انتقل إلى …» ===== */
+  let PD = [], CD = [], WP = [], DLG2 = null;
+  const PCOL = ["#0f8a94", "#2f5ea8", "#7a4bb5", "#b86d0c", "#24895a", "#b8434f", "#0da9a6", "#c98a1b"];
+  const openDlg = (html) => { if (!DLG2) { DLG2 = document.createElement("dialog"); DLG2.className = "lb-dlg lb-dlg2"; DLG2.addEventListener("click", (ev) => { if (ev.target === DLG2) DLG2.close(); }); m.querySelector(".lb").appendChild(DLG2); } DLG2.innerHTML = html; lbX(DLG2); if (DLG2.showModal) { if (!DLG2.open) DLG2.showModal(); } else DLG2.setAttribute("open", ""); DLG2.scrollTop = 0; };
+  const goBtn = (href, label) => `<div class="ft"><a class="go" href="${esc(href)}">${ic("up")} ${esc(label)}</a></div>`;
+  const pav = (name, photo, sz) => `<span class="pav ${sz || ""}" style="--c:${hue(name || "؟")[0]}">${photo ? `<img loading="lazy" alt="" src="${esc(pub("public-photos", photo))}">` : esc(mono(name))}</span>`;
+  const tile = (v, l, c) => `<div class="tl2 ${c || ""}"><b>${num(v)}</b><span>${l}</span></div>`;
+  const prange = (d, u) => (d ? (u && u !== d ? `${fmt(d)} – ${fmt(u)}` : fmt(d)) : "بلا موعد");
+  const PST = { done: ["منفّذ", "g"], run: ["قيد التنفيذ", "b"], late: ["متعثر", "r"], new: ["لم يبدأ", ""] };
+  const SYSN = [["/smart-plans", "الخطط الذكية"], ["/teachers-community", "المجتمع المهني الذكي"], ["/self-evaluation", "التقويم الذاتي"], ["/qiyami", "قيمي"], ["/facility-booking", "احجز مرفق"], ["/indibati", "انضباطي"], ["/report", "النواة الرقمية"]];
+
+  function plansList() {
+    if (!PD.length) return `<div class="lb-em">لا خطط مسجلة بعد.</div>`;
+    return `<div class="plg">${PD.map((p, i) => { const pct = p.total ? Math.round((100 * p.done) / p.total) : 0; return `<button type="button" class="plc" data-pl="${i}" style="--c:${PCOL[i % PCOL.length]}"><span class="top"><b>${esc(p.name)}</b>${p.late ? `<em class="bad">${num(p.late)} متعثر</em>` : ""}</span><span class="own">${pav(p.owner, p.owner_photo, "s")}<small>${esc(p.owner || "بلا مسؤول")}</small></span><span class="lb-bar"><i style="width:${pct}%"></i></span><span class="pcs"><i>${num(p.total)} برنامجاً</i><i>${num(p.done)} منفّذ</i><i>${num(p.documented)} موثق</i></span></button>`; }).join("")}</div>`;
+  }
+  function planDlg(i) {
+    const p = PD[i]; if (!p) return; const col = PCOL[i % PCOL.length], pct = p.total ? Math.round((100 * p.done) / p.total) : 0, dpc = p.total ? Math.round((100 * p.documented) / p.total) : 0;
+    const rows = (p.programs || []).map((g) => { const st = PST[g.state] || ["", ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${st[0]}</span><div class="tx"><b>${esc(g.name)}</b><small>${esc(prange(g.day, g.until))}${g.beneficiary ? " · المستفيد: " + esc(g.beneficiary) : ""}</small>${g.owner ? `<small class="ow">${pav(g.owner, g.photo, "xs")}${esc(g.owner)}</small>` : ""}</div><span class="dchip ${g.documented ? "ok" : ""}">${g.documented ? "موثق" : "غير موثق"}</span></li>`; }).join("");
+    openDlg(`<div class="hd" style="--c:${col}"><span class="ty">خطة ذكية${p.year ? " · " + esc(p.year) : ""}</span><h3>${esc(p.name)}</h3>${p.desc ? `<p class="dsc">${esc(p.desc)}</p>` : ""}</div>
+      <div class="ownr">${pav(p.owner, p.owner_photo, "l")}<div><small>مسؤول الخطة</small><b>${esc(p.owner || "لم يُحدَّد")}</b>${p.owner_job ? `<small>${esc(p.owner_job)}</small>` : ""}</div></div>
+      <div class="tls">${tile(p.total, "إجمالي البرامج")}${tile(p.done, "المنفّذ", "g")}${tile(p.running, "قيد التنفيذ", "b")}${tile(p.late, "المتعثر", p.late ? "r" : "")}${tile(p.documented, "الموثق", "g")}${tile(p.undocumented, "منفّذ ينتظر التوثيق", p.undocumented ? "y" : "")}</div>
+      <div class="bars2"><div><span>نسبة التنفيذ <b>${num(pct)}%</b></span><div class="lb-bar"><i style="width:${pct}%"></i></div></div><div><span>نسبة التوثيق <b>${num(dpc)}%</b></span><div class="lb-bar"><i style="width:${dpc}%"></i></div></div></div>
+      <h5 class="sh">برامج الخطة · ${num((p.programs || []).length)}</h5>${rows ? `<ul class="pgl2">${rows}</ul>` : `<div class="lb-em">لا برامج في هذه الخطة بعد.</div>`}
+      ${goBtn("/smart-plans/", "انتقل إلى الخطط الذكية")}`);
+  }
+  function progDlg(j) {
+    const e = WP[j]; if (!e) return; const st = PST[e.state === "ended" ? "done" : e.state === "running" ? "run" : "new"] || ["", ""];
+    const rows = [["الموعد", `${dayName(e.day)} · ${prange(e.day, e.until)}`], ["المسؤول", e.owner], ["المستفيد", e.beneficiary], ["المكان", e.place || e.location], ["الحالة", e.status]].filter((r) => r[1]);
+    openDlg(`<div class="hd" style="--c:${COL.plans}"><span class="ty">برنامج</span><h3>${esc(e.title)}</h3></div><dl>${rows.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>${goBtn(e.link || "/smart-plans/", "انتقل إلى الخطط الذكية")}`);
+  }
   function progCard(wk) {
     const o = PO || { total: 0, done: 0, running: 0, late: 0, plans: [] }, ps = (wk.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day)));
-    const pct = o.total ? Math.round((100 * o.done) / o.total) : 0, nx = o.next, C = 2 * Math.PI * 52;
-    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية</h4><p>نظرة سريعة على إنجاز برامج المدرسة وما يجري هذا الأسبوع</p></div><a href="/smart-plans/">فتح الخطط</a></div>`;
+    WP = ps;
+    const pct = o.total ? Math.round((100 * o.done) / o.total) : 0, C = 2 * Math.PI * 52;
+    const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية</h4><p>اضغط على أي خطة لترى مسؤولها وبرامجها ونسب إنجازها وتوثيقها</p></div><a href="/smart-plans/">انتقل إلى الخطط</a></div>`;
     const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" style="stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>نسبة الإنجاز</span></div></div>`;
-    const kp = `<div class="pgk"><span><b>${num(o.total)}</b>برنامجاً</span><span><b>${num(o.done)}</b>منفّذ</span><span><b>${num(o.running)}</b>قيد التنفيذ</span><span class="${o.late ? "lt" : ""}"><b>${num(o.late)}</b>متأخر</span></div>`;
-    const bars = (o.plans || []).slice(0, 4).map((p) => { const v = p.n ? Math.round((100 * p.done) / p.n) : 0; return `<div class="pb"><span>${esc(p.name)}</span><i><u style="width:${v}%"></u></i><em>${num(p.done)}/${num(p.n)}</em></div>`; }).join("");
-    const wkl = ps.length ? `<div class="pgl">${ps.map((e) => `<a class="pgc" href="${esc(e.link || "/smart-plans/")}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span></a>`).join("")}</div>` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`;
-    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}${bars ? `<div class="pbs">${bars}</div>` : ""}</div></div><h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
+    const doc = PD.reduce((a, x) => a + (x.documented || 0), 0), und = PD.reduce((a, x) => a + (x.undocumented || 0), 0);
+    const kp = `<div class="pgk"><span><b>${num(o.total)}</b>برنامجاً</span><span><b>${num(o.done)}</b>منفّذ</span><span><b>${num(o.running)}</b>قيد التنفيذ</span><span class="${o.late ? "lt" : ""}"><b>${num(o.late)}</b>متعثر</span><span><b>${num(doc)}</b>موثق</span><span class="${und ? "lt" : ""}"><b>${num(und)}</b>ينتظر التوثيق</span></div>`;
+    const wkl = ps.length ? `<div class="pgl">${ps.map((e, j) => `<button type="button" class="pgc" data-pj="${j}"><span class="dy"><b>${num(new Date(e.day + "T12:00:00").getDate())}</b><small>${esc(dayName(e.day))}</small></span><span class="tx"><b>${esc(e.title)}</b><small>${e.until && e.until !== e.day ? `حتى ${esc(fmt(e.until))}` : "يوم واحد"}${e.owner ? " · " + esc(e.owner) : ""}</small>${e.beneficiary ? `<small>المستفيد: ${esc(e.beneficiary)}</small>` : ""}</span></button>`).join("")}</div>` : `<div class="lb-em">لا برامج مجدولة هذا الأسبوع.</div>`;
+    return `<section class="lb-p lb-pg">${head}<div class="pgt">${ring}<div class="pgm">${kp}</div></div><h5 class="pgh">الخطط · ${num(PD.length)}</h5>${plansList()}<h5 class="pgh">برامج هذا الأسبوع · ${num(ps.length)}</h5>${wkl}</section>`;
   }
   /* ----- الحجوزات حسب الحصص ----- */
   function periodsCard(pd) {
@@ -265,14 +296,42 @@ async function lbeedPage(m) {
   }
   /* ----- المجتمعات المهنية ----- */
   const CKIND = { plc: "مجتمع تعلم مهني", team: "فريق عمل", committee: "لجنة" };
-  function commCard(cs, ev) {
-    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية</h4><p>${num(cs.length)} مجتمعاً نشطاً وآخر ما حدث فيها</p></div><a href="/teachers-community/#/communities">فتح المجتمعات</a></div>`;
-    const one = (c) => `<a class="cm" href="${esc(c.link)}"><span class="ci">${ic("meeting")}</span><b>${esc(c.name)}</b><small>${esc(CKIND[c.kind] || c.kind || "")}${c.leader ? " · القائد: " + esc(c.leader) : ""}</small><span class="cn"><em>${num(c.members)}</em> أعضاء <em>${num(c.meetings_30d)}</em> لقاءات (30 يوماً)</span></a>`;
-    const set = cs.map(one).join("");
-    const KL = { minutes: "توثيق", meeting: "لقاء", post: "منشور", growth: "نمو مهني", task: "مهمة", initiative: "مبادرة", community: "مجتمع" };
-    return `<section class="lb-p dkc lb-cm">${head}${cs.length ? `<div class="vp"><div class="tr" style="animation-duration:${Math.max(30, cs.length * 12)}s">${set}${cs.length > 2 ? set : ""}</div></div>` : em("لا مجتمعات نشطة.")}
-      <div class="ce"><h5>آخر الأحداث في المجتمعات</h5>${(ev || []).length ? ev.map((x) => `<a class="ei" href="${esc(x.link || "#")}"><span class="kd ${x.kind === "minutes" ? "doc" : ""}">${esc(KL[x.kind] || x.kind)}</span><span class="tx"><b>${esc(String(x.title).replace(/^[^:]+: /, ""))}</b><small>${esc(x.detail || "")}${x.actor ? " · " + esc(x.actor) : ""}</small></span><time>${REL(x.at)}</time></a>`).join("") : em("لا أحداث حديثة.")}</div></section>`;
+  const AK = { meeting: ["لقاء", "b"], attendance: ["حضور", "g"], approval: ["اعتماد حضور", "g"], doc: ["توثيق", "y"], minutes: ["محضر", "p"], task: ["مهمة", ""], post: ["منشور", ""], output: ["مخرج", "p"] };
+  const MST = { held: ["نُفِّذ", "g"], planned: ["مجدول", "b"], cancelled: ["ملغى", "r"], postponed: ["مؤجل", "y"] };
+  function commDlg(i) {
+    const c = CD[i]; if (!c) return;
+    const meet = (c.meetings || []).map((x) => { const st = MST[x.status] || [x.status, ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${esc(st[0])}</span><div class="tx"><b>${x.no ? "اللقاء " + num(x.no) + " · " : ""}${esc(x.title)}</b><small>${esc(dt(x.at))}${x.location ? " · " + esc(x.location) : ""}</small>${x.status === "held" || x.invited ? `<small>الحضور: ${num(x.present)} من ${num(x.invited)}${x.images ? " · " + num(x.images) + " صورة موثقة" : ""}</small>` : ""}${x.decisions ? `<small class="dc2">القرارات: ${esc(String(x.decisions).slice(0, 140))}</small>` : ""}</div><span class="dchip ${x.documented ? "ok" : ""}">${x.documented ? "موثق" : x.status === "held" ? "غير موثق" : "—"}</span>${x.minutes ? `<span class="dchip ${x.minutes === "approved" ? "ok" : ""}">${x.minutes === "approved" ? "محضر معتمد" : "محضر قيد الاعتماد"}</span>` : ""}</li>`; }).join("");
+    const act = (c.activity || []).map((a) => { const k = AK[a.kind] || [a.kind, ""]; return `<li class="act"><span class="kd2 ${k[1]}">${esc(k[0])}</span><div class="tx"><b>${esc(a.text)}</b><small>${a.who ? esc(a.who) + " · " : ""}${REL(a.at)}</small></div></li>`; }).join("");
+    const mem = (c.member_list || []).map((x) => `<span class="mchip">${pav(x.name, x.photo, "xs")}${esc(x.name)}${x.role === "leader" ? "<em>قائد</em>" : ""}</span>`).join("");
+    openDlg(`<div class="hd" style="--c:${COL.community}"><span class="ty">${esc(CKIND[c.kind] || c.kind || "مجتمع مهني")}${c.domain ? " · " + esc(c.domain) : ""}</span><h3>${esc(c.name)}</h3>${c.description ? `<p class="dsc">${esc(String(c.description).slice(0, 220))}</p>` : ""}</div>
+      <div class="ownr">${pav(c.leader, c.leader_photo, "l")}<div><small>قائد المجتمع</small><b>${esc(c.leader || "لم يُحدَّد")}</b><small>${num(c.members)} عضواً${c.start_on ? " · منذ " + esc(fmt(c.start_on)) : ""}</small></div></div>
+      <div class="tls">${tile(c.meetings_held, "لقاءات منفّذة", "g")}${tile(c.meetings_upcoming, "لقاءات قادمة", "b")}${tile(c.docs, "لقاءات موثقة", "g")}${tile(c.minutes_approved, "محاضر معتمدة", "g")}${tile(c.att_present, "حضور مسجّل")}${tile(c.hours, "ساعات حضور معتمدة")}${tile(c.tasks_open, "مهام مفتوحة", c.tasks_late ? "y" : "")}${tile(c.tasks_late, "مهام متأخرة", c.tasks_late ? "r" : "")}${tile(c.posts + c.outputs, "منشورات ومخرجات")}</div>
+      <h5 class="sh">اللقاءات · ${num(c.meetings_total)}</h5>${meet ? `<ul class="pgl2">${meet}</ul>` : `<div class="lb-em">لا لقاءات مسجلة بعد.</div>`}
+      <h5 class="sh">ماذا يحدث في المجتمع</h5>${act ? `<ul class="acl">${act}</ul>` : `<div class="lb-em">لا نشاط مسجل بعد.</div>`}
+      ${mem ? `<h5 class="sh">الأعضاء · ${num(c.members)}</h5><div class="mem">${mem}</div>` : ""}
+      ${goBtn(c.link || "/teachers-community/", "انتقل إلى المجتمع المهني الذكي")}`);
   }
+  function commCard(cs) {
+    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية</h4><p>${num(cs.length)} مجتمعاً نشطاً · اضغط على أي مجتمع لترى ما يجري فيه</p></div><a href="/teachers-community/#/communities">انتقل إلى المجتمعات</a></div>`;
+    const one = (c, i) => `<button type="button" class="cm" data-cm="${i}"><span class="ci">${ic("meeting")}</span><b>${esc(c.name)}</b><small>${esc(CKIND[c.kind] || c.kind || "")}${c.leader ? " · القائد: " + esc(c.leader) : ""}</small><span class="cn"><em>${num(c.members)}</em> أعضاء <em>${num(c.meetings_held)}</em> منفّذ <em>${num(c.docs)}</em> موثق</span></button>`;
+    const all = cs.flatMap((c, i) => (c.activity || []).map((a) => ({ ...a, cn: c.name, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 10);
+    return `<section class="lb-p dkc lb-cm">${head}${cs.length ? `<div class="cmg">${cs.map(one).join("")}</div>` : em("لا مجتمعات نشطة.")}
+      <div class="ce"><h5>آخر ما حدث داخل المجتمعات</h5>${all.length ? all.map((x) => { const k = AK[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" data-cm="${x.i}"><span class="kd ${x.kind === "doc" || x.kind === "minutes" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${esc(x.cn)}${x.who ? " · " + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div></section>`;
+  }
+  /* أي بطاقة أخرى فيها رابط تفتح تفاصيلها هنا أولاً، والانتقال للنظام بزر صريح فقط */
+  function genDlg(a) {
+    const box = a.closest(".lb-it,.ei,.ui,.gc,.ap,.co,.tp,.sf") || a, href = a.getAttribute("href") || "#";
+    const lines = (box.innerText || "").split("\n").map((x) => x.trim()).filter(Boolean), tEl = box.querySelector("b"), title = (tEl && tEl.textContent.trim()) || lines[0] || "تفاصيل";
+    const sys = (SYSN.find(([p]) => href.includes(p)) || [0, "النظام"])[1], cs = getComputedStyle(box), col = (cs.getPropertyValue("--c") || cs.getPropertyValue("--h") || "").trim() || "#0f8a94";
+    openDlg(`<div class="hd" style="--c:${esc(col)}"><h3>${esc(title)}</h3></div><ul class="gl3">${lines.filter((l) => l !== title).map((l) => `<li>${esc(l)}</li>`).join("")}</ul>${href && href !== "#" ? goBtn(href, "انتقل إلى " + sys) : ""}`);
+  }
+  m.addEventListener("click", (ev) => {
+    const t = ev.target.closest("[data-pl],[data-pj],[data-cm]");
+    if (t && !t.closest(".lb-dlg")) { if (t.dataset.pl != null) return planDlg(+t.dataset.pl); if (t.dataset.pj != null) return progDlg(+t.dataset.pj); if (t.dataset.cm != null) return commDlg(+t.dataset.cm); }
+    const a = ev.target.closest("a[href]");
+    if (!a || !a.closest(".lb") || a.closest(".lb-dlg") || a.closest(".dh") || a.classList.contains("go") || ev.ctrlKey || ev.metaKey || ev.shiftKey || a.target === "_blank") return;
+    ev.preventDefault(); genDlg(a);
+  });
   /* ----- قيمي: لوحة الصدارة، المعلمون الأكثر منحاً، آخر الأوسمة ----- */
   function topStrip(top, link) {
     const head = `<div class="dh"><span class="ico y">${ic("star")}</span><div><h4>لوحة الصدارة · قيمي</h4><p>أفضل ${num(top.length)} طلاب بحسب النقاط</p></div><a href="${esc(link)}">لوحة الشرف</a></div>`;
@@ -312,6 +371,7 @@ async function lbeedPage(m) {
   async function overview() {
     const [d, pl, docs, gl, ach, pd, cs, cev, top, hn, md] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_growth_latest", { p_n: 8 }).catch(() => []), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ badges: [], link: "/qiyami/leaderboard.html" })), rpc("lb_media").catch(() => ({ people: [] }))]);
     PO = await rpc("lb_plans_overview").catch(() => null);
+    [PD, CD] = await Promise.all([rpc("lb_plans_detail").catch(() => []), rpc("lb_communities_detail").catch(() => [])]);
     people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
     const q = d.qiyami || {};
     body.innerHTML = `${disCard(d.attendance || {})}
@@ -321,7 +381,7 @@ async function lbeedPage(m) {
       ${growthCard(gl || [])}
       ${achCard(ach || [])}
       ${periodsCard(pd || { periods: [] })}
-      ${commCard(cs || [], cev || [])}
+      ${commCard(CD)}
       ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
       ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${sysCard(d, pl)}`;
