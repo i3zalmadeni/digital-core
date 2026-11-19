@@ -511,7 +511,7 @@
 .lb-pg .pgt{display:grid;grid-template-columns:auto 1fr minmax(220px,.8fr);gap:22px;align-items:center;margin:6px 0 16px}
 .pgr{position:relative;width:132px;height:132px}.pgr svg{width:100%;height:100%;transform:rotate(-90deg)}.pgr circle{fill:none;stroke-width:11;stroke-linecap:round}.pgr .t{stroke:#e3eef0}.pgr .v{stroke:var(--brand);transition:stroke-dasharray 1.2s cubic-bezier(.2,.8,.2,1)}
 .pgr div{position:absolute;inset:0;display:grid;place-content:center;text-align:center}.pgr b{font-size:2rem;color:var(--navy);line-height:1}.pgr b small{font-size:.9rem}.pgr span{font-size:.72rem;color:#5b7a85}
-.pgk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.pgk span{display:grid;gap:2px;padding:10px;border-radius:14px;background:var(--brandsoft);font-size:.74rem;color:#4b6b76;text-align:center}.pgk b{font-size:1.3rem;color:var(--navy)}.pgk .w b{color:#b4531a}
+.pgk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.pgk span{display:grid;gap:2px;padding:10px;border-radius:14px;background:var(--brandsoft);font-size:.74rem;color:#4b6b76;text-align:center}.pgk b{font-size:1.3rem;color:var(--navy)}.pgk .lt b{color:#b4531a}
 .pbs{margin-top:12px;display:grid;gap:7px}.pbs .pb{display:grid;grid-template-columns:minmax(90px,1.2fr) 2fr auto;gap:10px;align-items:center;font-size:.78rem;color:#3d5b66;padding:0}.pbs .pb i{height:8px;border-radius:8px;background:#e3eef0;overflow:hidden}.pbs .pb u{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--brand),var(--brand2))}.pbs .pb em{font-style:normal;color:#7a95a0;font-size:.72rem}
 .pgn{display:grid;gap:4px;padding:16px;border-radius:18px;background:linear-gradient(160deg,#fff7e3,#fff);border:1px solid #f0dca6;text-decoration:none;color:var(--navy)}.pgn small{font-weight:800;color:#8a6200}.pgn b{font-size:1rem;line-height:1.5}.pgn span{font-size:.78rem;color:#5b7a85}
 .pgh{margin:4px 0 10px;font-size:.9rem;color:var(--navy)}
@@ -564,3 +564,101 @@
 }
 
 .lb-dlg{position:relative}.lb-dlg>.dx{position:absolute;top:12px;inset-inline-end:12px;width:38px;height:38px;display:grid;place-items:center;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.22);color:#fff;cursor:pointer;z-index:3;box-shadow:none}.lb-dlg>.dx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}.lb-dlg>.dx:hover{background:rgba(255,255,255,.4)}.lb-dlg>.dx:focus-visible{outline:3px solid #f0b34a;outline-offset:2px}.lb-dlg>.dx~.hd{padding-inline-end:60px}
+
+/* ===== ملاءمة الجوال: بطاقات بالعرض (صفوف تُسحب أفقياً) بدل التكدس طولاً، ومنع الإزاحة لليمين والتصغير ===== */
+/* حارس عام: أي عنصر أعرض من الشاشة لا يوسّع الصفحة (ولا يجعل المتصفح يصغّرها) */
+.lb{max-width:100%;overflow-x:clip}
+.lb-main,#lbBody,#lbCal,#lbBody>*{min-width:0;max-width:100%}
+.ig>*,.ds>*,.pgt>*,.gg>*,.lb-cal>*,.lb-ind .dm>*{min-width:0}
+.lb-ind .ig>div{min-width:0}
+.upl{display:flex;flex-direction:column}
+@media(max-width:700px){
+  .lb-main{padding:12px 0}
+  .lb-hero{margin:12px 0}
+  .lb-hero .in{padding:16px 14px}
+  #lbBody>.lb-p,#lbCal .lb-p{padding-inline:14px}
+  .lb-docs,.lb-top,.lb-cm{padding-inline:0}
+  .lb-tabs .in{padding:8px 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.lb-tabs .in::-webkit-scrollbar{display:none}
+  .lb-tabs button{white-space:nowrap;padding:8px 16px}
+
+  /* صفوف أفقية بالسحب مع إظهار جزء من البطاقة التالية */
+  .pgl,.pdg,.gl2,.lb-ach .al,.stl,.upl,.lb-ind .dm,.lb-cgrid,.lb-top5{
+    display:flex;flex-wrap:nowrap;gap:12px;
+    overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+    margin-inline:-14px;padding:4px 14px 14px;scroll-padding-inline:14px;
+    scrollbar-width:none;
+  }
+  .pgl::-webkit-scrollbar,.pdg::-webkit-scrollbar,.gl2::-webkit-scrollbar,.lb-ach .al::-webkit-scrollbar,.stl::-webkit-scrollbar,.upl::-webkit-scrollbar,.lb-ind .dm::-webkit-scrollbar,.lb-cgrid::-webkit-scrollbar,.lb-top5::-webkit-scrollbar{display:none}
+  .pgl>*,.pdg>*,.gl2>*,.lb-ach .al>*,.upl>*,.lb-ind .dm>*,.lb-cgrid>*,.lb-top5>*{flex:0 0 min(82%,320px);width:min(82%,320px);margin:0;scroll-snap-align:start}
+  .lb-ach .al>.ap{flex-basis:min(62%,220px);width:min(62%,220px)}
+  .pdg>.pc{flex-basis:min(70%,260px);width:min(70%,260px)}
+  .lb-cgrid>.cc{flex-basis:min(72%,270px);width:min(72%,270px)}
+  .stl{grid-auto-rows:auto}
+  .stl>.sq{flex:0 0 132px;width:132px;height:158px;scroll-snap-align:start}
+  .upl>.ui{align-items:flex-start;margin-bottom:0}
+  .upl>.lb-em{flex:1 0 100%;width:100%}
+  .pc{min-height:0}
+
+  /* خط اليوم الزمني: مساحة أكبر للنص */
+  .ev{grid-template-columns:54px 18px minmax(0,1fr);gap:0 6px}
+  .ev .tc b{font-size:.84rem}
+  .eb dl{grid-template-columns:1fr}
+
+  /* التقويم الشهري */
+  .lb-cal{gap:12px}
+  .lb-mcal,.lb-ag{padding:14px}
+  .agh{gap:10px}.agh .big{width:60px;height:60px;border-radius:18px}.agh .big b{font-size:1.6rem}.agh h4{font-size:1.12rem}.agh .cn{padding:6px 12px}
+  .lb-fc{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-14px;padding-inline:14px}.lb-fc::-webkit-scrollbar{display:none}.lb-fc button{flex:none;white-space:nowrap}
+
+  /* أعمدة المؤشرات تُسحب داخل بطاقتها ولا توسّع الصفحة */
+  .cols{max-width:100%;margin-inline:-4px}
+  .lb-ind .ig{gap:16px}
+}
+
+/* ===== الجوال (تتمة): الأحداث القادمة وأحداث اليوم بطاقات بالعرض، وبطاقة الخطط الذكية بعرض الشاشة ===== */
+@media(max-width:860px){
+  .lb-pg .pgt{grid-template-columns:minmax(0,1fr);gap:16px}
+  .lb-pg .pgt .pgr{margin-inline:auto}
+  .pgk{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .pgk span{padding:8px 4px}
+  .pbs .pb{grid-template-columns:minmax(70px,1fr) 1.6fr auto}
+}
+@media(max-width:700px){
+  .upl{flex-direction:row}
+
+  /* أحداث اليوم: بطاقات بالعرض بدل خط زمني طويل */
+  .lb-ag .tl{flex-direction:row;align-items:flex-start;gap:12px;overflow-x:auto;overflow-y:hidden;min-height:0;
+    scroll-snap-type:x mandatory;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+    margin-inline:-14px;padding:4px 14px 14px;scroll-padding-inline:14px;scrollbar-width:none}
+  .lb-ag .tl::-webkit-scrollbar{display:none}
+  .lb-ag .tl>.ev{display:flex;flex-direction:column;flex:0 0 min(82%,320px);width:min(82%,320px);scroll-snap-align:start;animation-delay:calc(var(--i,0)*40ms)}
+  .lb-ag .tl>.ev .rl{display:none}
+  .lb-ag .tl>.ev .tc{text-align:start;padding:0 4px 6px;display:flex;gap:6px;align-items:baseline}
+  .lb-ag .tl>.ev .tc b,.lb-ag .tl>.ev .tc b:only-child{font-size:.9rem;color:var(--brand2);line-height:1.2}
+  .lb-ag .tl>.ev .tc small:before{content:"إلى ";color:#9ab0bb}
+  .lb-ag .tl>.ev .ec{margin-bottom:0;width:100%}
+  .lb-ag .tl>.nowm{display:none}
+  .lb-ag .tl>.lb-nomt{flex:1 0 100%;width:100%}
+  .lb-ag .tl .eh{flex-wrap:wrap;gap:8px 10px;padding:12px}
+  .lb-ag .tl .eh .tt{flex:1 1 calc(100% - 100px)}
+  .lb-ag .tl .eh .lb-st{order:4;margin-inline-start:48px}
+  .lb-ag .tl .eh .chv{margin-inline-start:auto}
+  .ev .eb dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ===== الجوال (تتمة 2): ترويسات البطاقات، والتقويم الشهري بخلايا منتظمة ===== */
+@media(max-width:560px){
+  .lb .dh{flex-wrap:wrap;gap:10px}
+  .lb .dh>div{flex:1 1 calc(100% - 60px);min-width:0}
+  .lb .dh>a{flex:1 1 100%;text-align:center;order:3}
+  .lb-cm .dh,.lb-docs .dh,.lb-top .dh{padding-inline:16px}
+}
+@media(max-width:700px){
+  .lb-cal .lb-mcal{display:block}
+  .lb-cal .lb-mg{flex:none;align-content:start;grid-auto-rows:auto;gap:6px}
+  .lb-cal .lb-mg button{aspect-ratio:1/.9;min-height:0}
+  .lb-cal .lb-mg .w{font-size:.8rem!important;white-space:nowrap}
+}
+/* أسماء أيام التقويم الشهري: تتعارض مع صنف .w العام (تصغير وشفافية) فنلغيه هنا */
+.lb-mg .w{transform:none;opacity:1;width:auto;height:auto;border-radius:0;background:none;filter:none;transition:none}
