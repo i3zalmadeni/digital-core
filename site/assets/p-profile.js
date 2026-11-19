@@ -58,6 +58,11 @@ boot("profile.html", async (m, c) => {
     `<div class="card"><h3 class="sec" style="margin-top:0">بياناتي</h3><div class="fg">
       ${[["الاسم", r.full_name], ["معرّف الدخول (رقم الهوية)", p.login_id], ["المسمى الوظيفي", r.job_titles?.name_ar], ["التخصص", r.specialty]]
         .map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div>
+    <div class="card" id="phc"><h3 class="sec" style="margin-top:0">صورتي</h3><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div id="phv" class="pp-av" style="width:84px;height:84px;flex:none;overflow:hidden">${pfr.data?.avatar_path ? `<img alt="" style="width:100%;height:100%;object-fit:cover" src="${APP_CONFIG.supabaseUrl}/storage/v1/object/public/pc-avatars/${esc(pfr.data.avatar_path)}">` : esc((r.full_name || "؟").trim().charAt(0))}</div>
+      <div class="grow"><small class="sub">صورة واحدة تظهر في النواة الرقمية وفي ملفك بالمجتمع المهني. JPG أو PNG أو WebP حتى 5 ميجابايت.</small>
+        <div class="acts" style="margin-top:8px"><label class="btn sm" for="phf" style="cursor:pointer">تغيير الصورة</label><input id="phf" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
+        <p class="err" id="phe" role="alert"></p></div></div></div>
     ${pfr.error && itr.error ? "" : `<div id="ppw">${ppRender(r, pfr.data || {}, itr.data || [], rcr.data || [], cmr.data)}</div>`}
     <div class="card mt" id="ct"><h3 class="sec" style="margin-top:0">بيانات التواصل</h3>
       <form id="cf"><div class="fg">
@@ -65,6 +70,18 @@ boot("profile.html", async (m, c) => {
         <div><label for="ph">رقم الجوال</label><input id="ph" type="tel" ${S} inputmode="tel" autocomplete="tel" value="${esc(p.phone || "")}" placeholder="05xxxxxxxx"><small class="sub">10 أرقام تبدأ بـ 05.</small></div>
       </div><p class="err" id="ce" role="alert"></p><div class="acts"><button class="btn" id="cs" type="submit">حفظ بيانات التواصل</button></div></form></div>`;
   const g = (i) => m.querySelector(i);
+  g("#phf").onchange = async (e) => {
+    const file = e.target.files[0], er = g("#phe"); er.textContent = ""; if (!file) return;
+    try {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("الصور بصيغة JPG أو PNG أو WebP فقط");
+      if (file.size > 5 * 1024 * 1024) throw new Error("الصورة أكبر من 5 ميجابايت");
+      const path = `${c.me.id}/avatar-${Date.now()}.${file.type.split("/")[1].replace("jpeg", "jpg")}`;
+      const up = await sb.storage.from("pc-avatars").upload(path, file, { contentType: file.type }); if (up.error) throw new Error(up.error.message);
+      const { data, error } = await sb.rpc("core_set_my_avatar", { p_path: path }); if (error) throw new Error(mapErr(error)); if (!data?.ok) throw new Error("تعذر حفظ الصورة.");
+      if (data.old && data.old !== path) sb.storage.from("pc-avatars").remove([data.old]);
+      toast("حُفظت الصورة"); setTimeout(() => location.reload(), 800);
+    } catch (x) { er.textContent = x.message || "تعذر رفع الصورة."; }
+  };
   g("#cf").onsubmit = async (e) => {
     e.preventDefault(); const er = g("#ce"), b = g("#cs"); er.textContent = ""; b.disabled = true;
     const { data, error } = await sb.rpc("core_update_my_contact", { p_email: g("#em").value, p_phone: g("#ph").value }); b.disabled = false;

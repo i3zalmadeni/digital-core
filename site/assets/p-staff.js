@@ -25,7 +25,7 @@ boot("staff.html", async (m, c) => {
     m.querySelector("#cnt").textContent = `${list.length} من ${rows.length} منسوب`;
   }
   async function details(r) {
-    const p = priv[r.id] || {}, img = await signed(r.photo_path);
+    const p = priv[r.id] || {}, img = await staffPhoto(r, await avatarMap());
     const md = modal(`<h3>${esc(r.full_name)}</h3><div class="row2" style="align-items:flex-start;gap:16px">${img ? `<img src="${img}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:12px">` : ""}<div class="fg" style="flex:1">
       ${[["الفئة", r.staff_categories?.name_ar], ["المسمى", r.job_titles?.name_ar], ["التخصص", r.specialty], ["المؤهل", r.qualification], ["القسم", r.department], ["الحالة الوظيفية", L.emp[r.employment_status]], ["تاريخ الانضمام", fmt(r.joined_on)], ...(canContact ? [["الرقم الوظيفي", p.employee_no], ["البريد", p.email], ["الجوال", p.phone]] : [])]
         .map(([k, v]) => `<div><small class="sub">${k}</small><br><b>${esc(v || "—")}</b></div>`).join("")}</div></div><div class="acts mt"><button class="btn sec" id="h">سجل التغييرات</button><button class="btn sec" id="cx">إغلاق</button></div>`, true);

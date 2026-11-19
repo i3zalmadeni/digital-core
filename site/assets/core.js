@@ -63,6 +63,9 @@ function exportXlsx(name, headers, rows) {
 }
 // رابط موقّع لملف في حاوية الوسائط الخاصة
 async function signed(path) { if (!path) return null; const r = await sb.storage.from("registry-media").createSignedUrl(path, 3600); return r.data?.signedUrl || null; }
+// صورة المنسوب الموحّدة: صورة الملف المهني (pc-avatars) أولاً، وإلا صورة سجل النواة
+async function avatarMap() { const { data } = await sb.from("pc_profiles").select("staff_id,avatar_path").not("avatar_path", "is", null); return new Map((data || []).map((x) => [x.staff_id, x.avatar_path])); }
+async function staffPhoto(r, map) { const ap = map && map.get(r.id); return ap ? `${APP_CONFIG.supabaseUrl}/storage/v1/object/public/pc-avatars/${ap.split("/").map(encodeURIComponent).join("/")}` : signed(r.photo_path); }
 async function uploadMedia(folder, id, file) {
   if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error("الصور بصيغة JPG أو PNG أو WebP فقط");
   if (file.size > 5 * 1024 * 1024) throw new Error("الصورة أكبر من 5 ميجابايت");
