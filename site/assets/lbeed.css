@@ -662,3 +662,81 @@
 }
 /* أسماء أيام التقويم الشهري: تتعارض مع صنف .w العام (تصغير وشفافية) فنلغيه هنا */
 .lb-mg .w{transform:none;opacity:1;width:auto;height:auto;border-radius:0;background:none;filter:none;transition:none}
+
+/* ===== الجوال: تصغير البطاقات وتجانس الأحجام (التابلت وما فوق دون تغيير) ===== */
+@media(max-width:700px){
+  .lb{font-size:14px}
+  /* الغلاف */
+  .lb-hero{border-radius:18px;margin:8px 0}
+  .lb-hero .in{padding:12px 14px}
+  .lb-hero .row{gap:8px}
+  .lb-hero h2{font-size:1.35rem;line-height:1.3}
+  .lb-hero .tag{font-size:.8rem;padding:2px 12px;margin-top:4px}
+  .lb-hero .dtm{padding-top:8px;gap:1px;line-height:1.5}
+  .lb-hero .dtm b{font-size:.9rem}.lb-hero .dtm span{font-size:.8rem}
+  .lb-hero .dtm .clk{font-size:1.15rem}
+  .lb-hero .dtm .live{font-size:.7rem;padding:1px 8px}
+  .lb-hero .lb-beat{height:44px}
+  /* اللوحات */
+  #lbBody>.lb-p,#lbCal .lb-p{border-radius:16px;padding:12px}
+  #lbBody>.lb-p::before,#lbCal .lb-p::before{width:4px}
+  #lbBody>.lb-p,#lbCal>.lb-pg{margin-top:10px}
+  #lbCal{margin-top:10px}
+  .lb-cal{gap:10px}
+  .lb .dh{gap:8px;margin-bottom:10px}
+  .lb .dh h4{font-size:1rem}.lb .dh p{font-size:.74rem;line-height:1.5}
+  .lb .dh .ico{width:34px;height:34px;border-radius:11px}.lb .dh .ico svg{width:18px;height:18px}
+  .lb .dh>a{font-size:.76rem;padding:5px 10px}
+  .lb-dis,.lb-dis.dkc,.lb-ind,.lb-bk,.lb-sys{padding:12px}
+  .lb-docs,.lb-top,.lb-cm{padding-block:12px 6px}
+  .lb-cm .dh,.lb-docs .dh,.lb-top .dh{padding-inline:12px}
+  .lb-em{padding:14px 8px;font-size:.82rem;border-radius:14px}
+  /* صفوف البطاقات الأفقية: أضيق */
+  .pgl>*,.pdg>*,.gl2>*,.lb-ach .al>*,.upl>*,.lb-ind .dm>*,.lb-cgrid>*,.lb-top5>*,.lb-ag .tl>.ev{flex-basis:min(74%,270px);width:min(74%,270px)}
+  .lb-ach .al>.ap{flex-basis:132px;width:132px}
+  .pdg>.pc{flex-basis:128px;width:128px}
+  .stl>.sq{flex-basis:108px;width:108px;height:126px;border-radius:16px;padding:24px 6px 8px}
+  .stl{gap:8px}.pgl,.pdg,.gl2,.lb-ach .al,.stl,.upl,.lb-ag .tl{gap:8px}
+  .sq .si{width:38px;height:38px;border-radius:12px}.sq .si svg{width:20px;height:20px}
+  .sq b{font-size:.74rem;min-height:2.4em}.sq small{font-size:.66rem}.sq .bd{font-size:.6rem;top:8px;inset-inline-start:8px}
+  /* بطاقات الأشخاص */
+  .ap{padding:12px 8px 10px;border-radius:16px}.ap .ph{width:56px;height:56px;font-size:1.1rem;margin:4px 0}.ap b{font-size:.8rem}.ap small,.ap em{font-size:.68rem}.ap .rk{min-width:22px;height:22px;font-size:.72rem;top:8px;inset-inline-start:8px}
+  .gc{padding:10px;gap:10px;border-radius:16px}.gc .ph{width:44px;height:44px;font-size:1rem}.gc .tx b{font-size:.86rem}.gc .tx small{font-size:.72rem}.gc .cs em{font-size:.66rem;padding:1px 8px}.gc time{font-size:.64rem}
+  .pgc{padding:10px;gap:10px;border-radius:14px}.pgc .dy{width:46px;height:50px;border-radius:12px}.pgc .dy b{font-size:1.15rem}.pgc .tx b{font-size:.84rem}.pgc .tx small{font-size:.7rem}
+  .pc{padding:10px;border-radius:14px}.pc .ph b{font-size:.9rem}.pc .bi b{font-size:.78rem}
+  .tp{width:140px;padding:12px 8px 10px;border-radius:16px}.tp .ph{width:52px;height:52px;font-size:1.15rem}.tp b{font-size:.78rem}
+  .dc{width:230px;border-radius:16px}.dc .im{height:140px}.dc .dov b{font-size:.88rem}
+  .cm{width:220px;padding:12px;border-radius:16px}.cm b{font-size:.9rem}
+  .ui{padding:6px;gap:8px;border-radius:12px}.ui .dd{width:42px}.ui .dd b{font-size:1rem}.ui .tx b{font-size:.82rem}.ui .tx small{font-size:.7rem}
+  /* التقويم */
+  .lb-mcal,.lb-ag{padding:12px}
+  .lb-mh{margin-bottom:8px}.lb-mh b{font-size:1rem}.lb-mh button{width:30px;height:30px;border-radius:10px}
+  .lb-cal .lb-mg{gap:4px}.lb-cal .lb-mg button{aspect-ratio:1/.78;border-radius:10px}.lb-mg button b{font-size:.82rem}.lb-mg u{width:5px;height:5px}
+  .lb-cal .lb-mg .w{font-size:.72rem!important}
+  .tdb{margin-top:8px;padding:6px;font-size:.82rem}.lb-mcal .lg{font-size:.7rem;margin-top:8px;gap:4px 10px}
+  .agh{gap:8px;margin-bottom:10px}.agh .big{width:48px;height:48px;border-radius:14px}.agh .big b{font-size:1.3rem}.agh .big span{font-size:.64rem}
+  .agh h4{font-size:1rem}.agh p{font-size:.74rem}.agh .cn{padding:4px 10px;border-radius:12px}.agh .cn b{font-size:1.2rem}.agh .cn span{font-size:.66rem}
+  .lb-fc{gap:6px;margin-bottom:8px}.lb-fc button{font-size:.76rem;padding:4px 10px}
+  .lb-ag .tl .eh{padding:10px;gap:6px 8px}.eh .ico{width:30px;height:30px;border-radius:10px}.eh .ico svg{width:16px;height:16px}.eh .tt b{font-size:.86rem}.eh .tt small{font-size:.7rem}
+  .up{margin-top:10px;padding-top:8px}.up h5{font-size:.86rem}
+  /* الانضباط والمؤشرات والخطط */
+  .lb .lb-dis .rg{width:min(100%,150px)}
+  .lb-dis.dkc .rg .ct b{font-size:2.2rem}.lb-dis.dkc .rg .ct span{font-size:.75rem;margin-top:2px}
+  .lb-dis .ds{gap:12px}.lb-dis .rt{gap:10px}.lb-dis .ks{gap:6px}
+  .lb-dis .k{padding:8px 6px;border-radius:12px}.lb-dis .k b{font-size:1.25rem}.lb-dis .k span{font-size:.74rem}.lb-dis .k small{font-size:.64rem}
+  .lb-ind .ovr .rg{width:110px;height:110px}.lb-ind .ovr .ct b{font-size:1.5rem}
+  .cols{min-height:220px;gap:8px;grid-auto-columns:minmax(64px,1fr)}.co .bar{height:120px;width:min(40px,70%)}.co .v{font-size:.95rem}.co .nm{font-size:.7rem}.co small{font-size:.62rem}.cols .grid{inset:30px 0 64px}
+  .pgr{width:96px;height:96px}.pgr b{font-size:1.5rem}.pgr span{font-size:.64rem}
+  .pgk b{font-size:1.1rem}.pgk span{font-size:.66rem;padding:6px 2px}
+  .lb-pg .pgt{margin:2px 0 10px;gap:10px}.pgh{font-size:.84rem}
+  .pbs .pb{font-size:.72rem}
+  .chs span{font-size:.76rem;padding:4px 12px}.chs b{font-size:1rem}
+  /* النوافذ المنبثقة */
+  .lb-dlg{width:94vw;border-radius:18px}.lb-dlg .hd{padding:14px 16px}.lb-dlg .hd h3{font-size:1.1rem}.lb-dlg dl{padding:6px 16px}.lb-dlg dt{flex-basis:84px;font-size:.8rem}
+  .lb-sec{margin:18px 0 8px}.lb-sec h3{font-size:1.1rem}
+}
+@media(max-width:560px){
+  .lb .dh>a{flex:0 0 auto;margin-inline-start:42px;order:3;padding:3px 12px;font-size:.72rem}
+  .lb-dis .dh>a{flex:0 0 auto;margin-inline-start:42px}
+}
+@media(max-width:700px){.lb-ind .ovr .ct span{font-size:.6rem}.lb-ind .ovr .ct b{font-size:1.35rem}}
