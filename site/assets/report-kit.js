@@ -7,6 +7,7 @@
      ReportKit.print({ sb, system: "mirat", systemName: "مرآة | الملف الشامل", title, sub, body, issuer, year })
      ReportKit.printElement(el, { ...نفس الخيارات })   // يطبع محتوى عنصر قائم بأنماط صفحته
    خيارات أخرى: systemLogo (رابط شعار النظام، الافتراضي favicon.svg للنظام)، styles (CSS إضافي)، fname،
+   flow (تدفق متصل: القسم يكمل في الصفحة نفسها ويُقسَّم عند نهايتها، ولا ينتقل لصفحة جديدة إلا إذا لم يتسع شيء بعد عنوانه)،
    publicFull (عرض النسخة الكاملة للعامة في صفحة التحقق؛ الافتراضي لا)، inheritCss (تضمين أنماط الصفحة). */
 (() => {
   if (window.ReportKit) return;
@@ -209,8 +210,8 @@ html,body{margin:0!important;padding:0!important;background:#fff;-webkit-print-c
         if (u.t === "atom") { await putPieces([u.html], "", false); continue; }
         const whole = u.h2 + u.kids.join(""), h = await meas(whole);
         if (fits(h)) { place(whole, h); continue; }
-        if (h <= AV && used > 0 && !u.gal) { newPage(); place(whole, h); continue; }
-        await putPieces(u.kids.length ? u.kids : [""], u.h2, u.gal);
+        if (h <= AV && used > 0 && !u.gal && !o.flow) { newPage(); place(whole, h); continue; }
+        await putPieces(u.kids.length ? u.kids : [""], u.h2, u.gal || !!o.flow);
       }
       if (!pages[pages.length - 1].length && pages.length > 1) pages.pop();
       return { pages, styles };
