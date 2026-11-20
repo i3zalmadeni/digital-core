@@ -286,7 +286,7 @@ function bindNav() { const b = document.querySelector(".navtoggle"), n = documen
 const PUB_NAV = [["index.html", "الرئيسية", "home"], ["about.html", "عن النواة", "info"], ["data.html", "بيانات المدرسة", "school"], ["people.html", "منسوبو المدرسة", "users"]];
 const headMoe = '<span class="moe hm"><b>وزارة التعليم</b><small>Ministry of Education</small></span>';
 const pubHeader = (active) => `<header><div class="wrap top">${brandHTML("index.html")}<button class="navtoggle" aria-label="القائمة" aria-expanded="false">${ico("menu")}</button>
-<nav>${PUB_NAV.map(([h, n, i]) => `<a href="${h}" class="${h === active ? "on" : ""}" ${h === active ? 'aria-current="page"' : ""}>${ico(i)}${n}</a>`).join("")}<a href="login.html" data-login="1" class="${active === "login.html" ? "on" : ""}" ${active === "login.html" ? 'aria-current="page"' : ""}>${ico("grid")}لوحة التحكم</a></nav>${headMoe}</div></header>`;
+<nav>${PUB_NAV.map(([h, n, i]) => `<a href="${h}" class="${h === active ? "on" : ""}" ${h === active ? 'aria-current="page"' : ""}>${ico(i)}${n}</a>`).join("")}<a href="login.html" data-login="1" class="${active === "login.html" ? "on" : ""}" ${active === "login.html" ? 'aria-current="page"' : ""}>${ico("grid")}<span data-login-t>تسجيل الدخول</span></a></nav>${headMoe}</div></header>`;
 // شريط داكن لأقسام الصفحة الحالية (يُبنى من العناوين) مع تمييز القسم الظاهر أثناء التمرير
 function pubSubnav() {
   const bar = document.getElementById("pubsub"); if (!bar) return;
@@ -306,7 +306,7 @@ function pubInit(active) {
   document.querySelectorAll("[data-core]").forEach((e) => (e.innerHTML = CORE_ICON));
   document.querySelectorAll("[data-ico]").forEach((e) => (e.innerHTML = ico(e.dataset.ico)));
   bindNav(); pubSubnav();
-  try { if (Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k))) document.querySelectorAll("[data-login]").forEach((a) => { a.href = "dashboard.html"; }); } catch (e) {}
+  try { if (Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k))) document.querySelectorAll("[data-login]").forEach((a) => { a.href = "dashboard.html"; const t = a.querySelector("[data-login-t]"); if (t) t.textContent = "لوحة التحكم"; }); } catch (e) {}
   const rv = document.querySelectorAll(".rv"), reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
   const count = (el) => { const to = +el.dataset.count, t0 = performance.now(); if (reduce) { el.textContent = to; return; } const step = (t) => { const k = Math.min(1, (t - t0) / 1200); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
   if (!("IntersectionObserver" in window)) { rv.forEach((e) => e.classList.add("in")); document.querySelectorAll("[data-count]").forEach(count); return; }
