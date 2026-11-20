@@ -109,19 +109,22 @@ async function boot(page, render, o = {}) {
   const { data: me, error: meErr } = await sb.from("staff_members").select("id,full_name,category,job_title").eq("user_id", session.user.id).maybeSingle();
   if (meErr) { fail(meErr); return; }
   if (!me) { await doLogout("login.html?e=nostaff"); return; }
-  const { data: adm, error: admErr } = await sb.rpc("is_core_admin"); if (admErr) { fail(admErr); return; } const isAdmin = adm === true;
+  const { data: adm, error: admErr } = await sb.rpc("is_core_admin"); if (admErr) { fail(admErr); return; } let isAdmin = adm === true;
   const { data: pr, error: prErr } = await sb.from("staff_permissions").select("permission_code").eq("staff_id", me.id); if (prErr) { fail(prErr); return; }
   const have = new Set((pr || []).map((x) => x.permission_code));
-  const can = (code) => {
+  let can = (code) => {
     if (isAdmin) return true; const [r, l] = code.split(":");
     return ({ view: [`${r}:view`, `${r}:add`, `${r}:edit`], add: [`${r}:add`, `${r}:edit`] }[l] || [code]).some((x) => have.has(x));
   };
   // المنسوب بلا صلاحيات على سجلات النواة: لوحته «حسابي» فقط (ما يُنشر موجود في الموقع العام)
-  const staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
+  let staffOnly = !isAdmin && !["school:view", "personnel:view", "personnel_contact:view", "students:view", "facilities:view", "users:manage"].some(can);
+  // تبديل الدور: من يدير سجلات النواة يختار بين لوحة المنسق (السجلات والإدارة) ولوحة المعلم (حسابي وتكليفاتي ويحدث في لبيد)
+  const rvCan = !staffOnly, rvView = window.RoleSwitch ? RoleSwitch.view("core", session.user.id, rvCan) : "coord", asCoord = rvCan && rvView === "coord";
+  if (rvCan && !asCoord) { isAdmin = false; can = () => false; staffOnly = true; }
   if (staffOnly && !["profile.html", "password.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
   if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
-  const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id };
-  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n) : NAV.filter((n) => !n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can)));
+  const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id, rvCan, asCoord };
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n) : NAV.filter((n) => (!n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can))) && !(asCoord && n[0] === "profile.html"));
   const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
@@ -148,6 +151,7 @@ async function boot(page, render, o = {}) {
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: كلمة المرور الافتراضية لكل منسوب، ولمدير النواة آخر العمليات على سجلات النواة من غيره (مجمّعة)، و«مشاهدة الكل» سجل العمليات
+  if (window.RoleSwitch) RoleSwitch.mount({ sys: "core", uid: session.user.id, can: rvCan, view: rvView, home: { coord: "dashboard.html", teacher: "profile.html" }, teacherDesc: "حسابي وتكليفاتي", coordDesc: "سجلات النواة والصلاحيات والإدارة" });
   ubMount({ key: "core", uid: session.user.id, allUrl: "inbox.html", load: async () => {
     const N = [];
     const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();
