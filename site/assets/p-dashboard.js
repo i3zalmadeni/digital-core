@@ -8,17 +8,8 @@ const IC = {
   school: '<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v10M19 10v10M2 20h20M9 20v-6h6v6"/></svg>',
 };
 boot("dashboard.html", async (m, c) => {
-  const [st, sc, gr, ft, sm] = await Promise.all([sb.rpc("school_stats"), sb.from("school_profile").select("*").maybeSingle(), sb.from("grade_levels").select("code,name_ar").order("sort_order"), sb.from("facility_types").select("code,name_ar"),
-    sb.from("staff_members").select("job_titles(name_ar)").eq("is_active", true)]);
-  // إحصاءات مشتقة للاطلاع (لا بيانات تواصل): المنسوبون حسب المسمى والمؤهل والتخصص، والمرافق حسب الحالة والطاقة
-  const tally = (list, f, top) => { const o = {}; list.forEach((x) => { const k = f(x) || "غير محدد"; o[k] = (o[k] || 0) + 1; }); const e = Object.entries(o).sort((a, b) => b[1] - a[1]); return Object.fromEntries(top ? e.slice(0, top) : e); };
-  const SM = sm.data || [], same = (o) => Object.fromEntries(Object.keys(o).map((k) => [k, k]));
-  const byTitle = tally(SM, (x) => x.job_titles?.name_ar);
-  const s = st.data || {}, p = sc.data || {}, G = Object.fromEntries((gr.data || []).map((x) => [x.code, x.name_ar])), FT = Object.fromEntries((ft.data || []).map((x) => [x.code, x.name_ar]));
-  const rowH = (name, v, mx, sub) => `<li><span class="st-n">${esc(name)}${sub ? ` <small>${sub}</small>` : ""}</span><b class="st-v">${v}</b><span class="st-t"><i style="width:${Math.round((v / mx) * 100)}%"></i></span></li>`;
-  const lst = (o, names) => { const e = Object.entries(o || {}), mx = Math.max(1, ...e.map(([, v]) => v)); return e.length ? `<ul class="st-l">${e.map(([k, v]) => rowH(names[k] || k, v, mx)).join("")}</ul>` : '<p class="sub">لا توجد بيانات بعد.</p>'; };
-  const gradeRows = (() => { const SG = s.students_by_grade || {}, CG = s.classes_by_grade || {}, ks = Object.keys(G).filter((k) => SG[k] || CG[k]), mx = Math.max(1, ...ks.map((k) => SG[k] || 0)); return ks.length ? `<ul class="st-l">${ks.map((k) => rowH(G[k], SG[k] || 0, mx, `${CG[k] || 0} فصل`)).join("")}</ul>` : '<p class="sub">لا توجد بيانات بعد.</p>'; })();
-  const stCard = (ic, t, tot, body) => `<div class="card st3"><div class="st-h"><span class="st-i">${ic}</span><b>${t}</b><em>${tot ?? 0}</em></div>${body}</div>`;
+  const [st, sc] = await Promise.all([sb.rpc("school_stats"), sb.from("school_profile").select("*").maybeSingle()]);
+  const s = st.data || {}, p = sc.data || {};
   const kpi = (n, v, t, i) => `<div class="kpi k${i}"><div class="ic">${n}</div><div><b>${v ?? 0}</b><span>${t}</span></div></div>`;
   const reg = (href, ic, tone, t, d) => `<a class="card reg" href="${href}"><div class="ic k${tone}">${ic}</div><div><b>${t}</b><small>${d}</small></div></a>`;
   const yearChip = s.current_year ? `<span class="yr"><i></i>العام الدراسي: ${esc(s.current_year)}</span>` : c.isAdmin ? '<a class="yr" href="school.html#years">إنشاء العام الدراسي الأول ←</a>' : '<span class="yr">لا يوجد عام دراسي حالي</span>';
@@ -30,9 +21,6 @@ boot("dashboard.html", async (m, c) => {
       ${reg("school.html", IC.school, 0, "المدرسة", "الملف المركزي والقيادة والأعوام والمراحل والفصول.")}
       ${c.can("personnel:view") || c.can("users:manage") ? reg("staff.html", IC.users, 3, "المنسوبون", "الهيئة التعليمية والإدارية والمساندة.") : reg("profile.html", IC.users, 3, "حسابي", "بياناتي وتغيير كلمة المرور.")}
       ${c.can("students:view") ? reg("students.html", IC.cap, 1, "المتعلمون", "الهوية والتسجيل لكل عام وأولياء الأمور.") : ""}
-      ${reg("facilities.html", IC.building, 4, "المرافق", "الهوية الثابتة والموقع والمسؤولون والتجهيزات.")}</div>    <h3 class="sec">إحصاءات أساسية</h3><div class="grid st3g">
-      ${stCard(IC.users, "المنسوبون حسب المسمى الوظيفي", s.personnel_total, lst(byTitle, same(byTitle)))}
-      ${stCard(IC.cap, "المتعلمون والفصول حسب المرحلة", s.students_total, gradeRows)}
-      ${stCard(IC.building, "المرافق حسب النوع", s.facilities_total, lst(s.facilities_by_type, FT))}</div>
+      ${reg("facilities.html", IC.building, 4, "المرافق", "الهوية الثابتة والموقع والمسؤولون والتجهيزات.")}</div>
 `;
 });
