@@ -91,6 +91,9 @@ async function showHistory(table, id, title) {
 
 ICONS.assign = '<path d="M9 3h6l1 2h3v16H5V5h3zM9 13l2 2 4-4"/>';
 ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5V5.5M8 7h8M8 11h6"/>';
+ICONS.flag = '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>';
+ICONS.cal = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>';
+ICONS.eye = '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
 ICONS.pulse = '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>';
 // القائمة: 7 تبويبات في ثلاث مجموعات (الرئيسية · السجلات الأربعة · العمل والإدارة). [href, الاسم, الأيقونة, الوصف, الصلاحية, الشارة, المجموعة]
 const NAV = [["lbeed.html", "الرئيسية", "home", "مؤشرات المدرسة وما يجري في أنظمتها الآن", null, null, "home"],
@@ -99,11 +102,11 @@ const NAV = [["lbeed.html", "الرئيسية", "home", "مؤشرات المدر
   ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total", "reg"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total", "reg"],
   ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة، ودليل الوظائف المرجعي", null, null, "work"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور", null, null, "work"],
   ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin", null, "work"]];
-// الصفحات الفرعية: تبويبات داخل تبويب رئيسي واحد. [href, الاسم, الصلاحية]
+// الصفحات الفرعية: تبويبات داخل تبويب رئيسي واحد. [href, الاسم, الصلاحية, الأيقونة]
 const SUBNAV = {
-  "school.html": [["school.html#profile", "بيانات المدرسة"], ["school.html#lead", "القيادة المدرسية"], ["school.html#years", "الأعوام الدراسية"], ["school.html#classes", "المراحل والفصول"], ["teaching.html", "إسناد التدريس", "school:view"]],
-  "staff.html": [["access.html", "المنسوبون والحسابات", "users:manage"], ["staff.html", "سجل المنسوبين", "personnel:view"], ["publish.html", "النشر في الموقع", "admin"]],
-  "assignments.html": [["assignments.html", "التكليفات"], ["guide.html", "الدليل المرجعي", "admin"]] };
+  "school.html": [["school.html#profile", "بيانات المدرسة", null, "school"], ["school.html#lead", "القيادة المدرسية", null, "flag"], ["school.html#years", "الأعوام الدراسية", null, "cal"], ["school.html#classes", "المراحل والفصول", null, "grid"], ["teaching.html", "إسناد التدريس", "school:view", "book"]],
+  "staff.html": [["access.html", "المنسوبون والحسابات", "users:manage", "users"], ["staff.html", "سجل المنسوبين", "personnel:view", "users"], ["publish.html", "النشر في الموقع", "admin", "globe"]],
+  "assignments.html": [["assignments.html", "التكليفات", null, "assign"], ["guide.html", "الدليل المرجعي", "admin", "book"]] };
 const NAV_PARENT = { "teaching.html": "school.html", "access.html": "staff.html", "publish.html": "staff.html", "guide.html": "assignments.html", "assignment.html": "assignments.html" };
 // مؤشرات المدرسة (كانت في «مكتبي الإلكتروني»): تظهر أعلى الرئيسية للوحة المنسق
 async function kpiStrip(host, c) {
@@ -153,18 +156,18 @@ async function boot(page, render, o = {}) {
     : NAV.filter((n) => allow(n[4]) && !(asCoord && n[0] === "profile.html")).map((n) => { const f = subsOf(n[0])[0]; return f ? [f[0], ...n.slice(1), n[0]] : [...n, n[0]]; });
   const parent = staffOnly ? page : (NAV_PARENT[page] || page);
   const cur = items.find((n) => (n[7] || n[0]) === parent) || NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
-  const subs = staffOnly ? [] : subsOf(parent), subHTML = subs.length > 1 ? `<div class="subnav" role="navigation" aria-label="${esc(cur[1])}">${subs.map(([h, n]) => `<a href="${h}">${esc(n)}</a>`).join("")}</div>` : "";
+  const subs = staffOnly ? [] : subsOf(parent), subHTML = subs.length > 1 ? `<div class="subnav" role="navigation" aria-label="${esc(cur[1])}">${subs.map(([h, n, , e]) => `<a href="${h}">${ico(e)}${esc(n)}</a>`).join("")}</div>` : "";
   // التبويب الفرعي النشط: الصفحة نفسها، أو الصفحة مع القسم (#) في صفحة «المدرسة»
   const subMark = () => { const L = [...document.querySelectorAll(".subnav a")], at = page + location.hash, hit = L.find((a) => a.getAttribute("href") === at) || L.find((a) => a.getAttribute("href").split("#")[0] === page);
     L.forEach((a) => { const on = a === hit; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
     if (hit) { const w = hit.parentElement; w.scrollLeft += hit.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - hit.offsetWidth) / 2; } };
-  const navHTML = items.map(([h, n, e, t, , bd, g, key], i) => `${i && g !== items[i - 1][6] ? '<span class="dsep" aria-hidden="true"></span>' : ""}<a href="${h}" title="${esc(t)}" class="${(key || h) === parent ? "on" : ""}" ${(key || h) === parent ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("");
+  const navHTML = items.map(([h, n, e, t, , bd, g, key], i) => `${i && g !== items[i - 1][6] ? '<span class="dsep" aria-hidden="true"></span>' : ""}<a href="${h}" title="${esc(t)}" class="${(key || h) === parent ? "on" : ""}" ${(key || h) === parent ? 'aria-current="page"' : ""}>${ico(e)}${n}</a>`).join("");
   document.getElementById("shell").innerHTML =
     `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "lbeed.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
      <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${navHTML}</div>
      <div class="dwho">${ubBarHTML(me.full_name, "profile.html", "password.html")}</div></div></div></header>
-     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
+     <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${ico(cur[2])}${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
      <div class="wrap" id="topnote"></div>${subHTML ? `<div class="wrap subnav-w">${subHTML}</div>` : ""}<main class="wrap" id="main"></main>${footerHTML}`; bindNav();
   subMark(); addEventListener("hashchange", subMark);
@@ -210,7 +213,6 @@ async function boot(page, render, o = {}) {
     }
     return N;
   } });
-  sb.rpc("school_stats").then(({ data }) => { if (data) document.querySelectorAll("[data-b]").forEach((e) => { const v = data[e.dataset.b]; if (v !== undefined) e.textContent = v; }); });
   const main = document.getElementById("main");
   // تنبيه دائم ما دامت كلمة المرور هي الافتراضية (يختفي بعد تغييرها من «حسابي»)
   sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle().then(({ data }) => {

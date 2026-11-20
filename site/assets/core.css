@@ -1126,7 +1126,7 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
 
 /* ===== تقليص القائمة (2026-11-20): فواصل المجموعات والتبويبات الفرعية ===== */
 .dnav-in .dsep{flex:none;align-self:center;width:1px;height:22px;margin-inline:3px;background:rgba(255,255,255,.22)}.dnav-in .dsep:has(+ a.pk-hid){display:none}
-@media (min-width:761px){.dn .dnav-in a{padding-inline:12px}}
+@media (min-width:761px){.dn .dnav-in{gap:2px}.dn .dnav-in a{padding-inline:11px}}
 .subnav-w{margin-top:16px}
 .subnav{display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}.subnav::-webkit-scrollbar{display:none}
 .subnav a{white-space:nowrap;padding:10px 16px;color:var(--muted);text-decoration:none;font-weight:600;border-bottom:3px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s}
@@ -1134,3 +1134,10 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
 .subnav a.on{color:var(--brand2);border-bottom-color:var(--gold)}
 .kp-home{margin-bottom:18px}
 @media (max-width:760px){.dn .dnav-in .dsep{width:auto;height:1px;margin:4px 10px}.subnav a{padding:10px 12px;min-height:44px;display:flex;align-items:center}}
+/* الأيقونة بجوار عنوان الصفحة وكل تبويب فرعي، و«المزيد» بلون بقية التبويبات */
+.pb-t h1{display:flex;align-items:center;gap:10px}
+.pb-t h1 .ico{flex:none;width:34px;height:34px;padding:7px;border-radius:11px;background:var(--brandsoft);stroke:var(--brand2);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.subnav a{display:inline-flex;align-items:center;gap:7px}
+.subnav a .ico{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dnav .pk-mb{color:#cfe3e8;background:transparent;border:0;box-shadow:none;font-weight:500;font-size:.92rem;padding:9px 12px;border-radius:12px;min-height:0}
+.dnav .pk-mb:hover,.dnav .pk-mb[aria-expanded=true]{background:rgba(255,255,255,.1);color:#fff}
