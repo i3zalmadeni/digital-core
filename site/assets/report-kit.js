@@ -263,21 +263,24 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
     try { const [me, yr] = await Promise.all([o.issuer ? null : sb.rpc("current_staff_id").then((r) => r.data ? sb.from("staff_members").select("full_name").eq("id", r.data).maybeSingle() : null), o.year ? null : sb.from("academic_years").select("name").eq("status", "current").maybeSingle()]); if (me && me.data) o.issuer = me.data.full_name; if (yr && yr.data) o.year = yr.data.name; } catch (e) { /* بيانات اختيارية */ }
   }
   /* التوقيعات الإلكترونية (core_signatures): تُضاف آخر التقرير تلقائياً عند الإصدار.
-     signers: [{ label, role: "principal"|"issuer" } | { label, staff_id }]؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها.
-     إذا كان المُصدِر هو أحد الموقّعين الآخرين يظهر مرة واحدة. ومن لم يحفظ توقيعه يظهر اسمه وخانة توقيع فارغة. */
+     signers: [{ label, role: "principal"|"issuer"|"coordinator:<رمز النظام>" } | { label, staff_id } | { label, name }]؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها.
+     لكل دور خانته ولو كان الشخص نفسه في أكثر من دور؛ وتُحذف خانة «المُصدِر» العامة إن كان أحد الموقّعين. ومن لم يحفظ توقيعه يظهر اسمه وخانة فارغة. */
   async function sigs(o, sb) {
     if (o._sigDone) return; o._sigDone = true;
     if (o.signers === false || !sb) return;
-    const S = (o.signers || [{ role: "issuer", label: "مُصدِر التقرير" }, { role: "principal", label: "مدير المدرسة" }]).filter((x) => x && (x.role || x.staff_id));
+    const S = (o.signers || [{ role: "issuer", label: "مُصدِر التقرير" }, { role: "principal", label: "مدير المدرسة" }]).filter((x) => x && (x.role || x.staff_id || x.name));
     if (!S.length) return;
     try {
-      const r = await sb.rpc("core_signatures", { p_staff: S.filter((x) => x.staff_id).map((x) => x.staff_id), p_roles: S.filter((x) => x.role).map((x) => x.role) });
+      const ids = S.filter((x) => x.staff_id).map((x) => x.staff_id), roles = S.filter((x) => x.role).map((x) => x.role);
+      const r = ids.length || roles.length ? await sb.rpc("core_signatures", { p_staff: ids, p_roles: roles }) : { data: [] };
       if (r.error) throw r.error;
       const by = {}; (r.data || []).forEach((x) => (by[x.key] = x));
-      const seen = new Map();
-      S.forEach((x) => { const p = by[x.role || x.staff_id]; if (!p) return; const prev = seen.get(p.staff_id); if (prev) { if (prev.s.role === "issuer") prev.s = x; return; } seen.set(p.staff_id, { s: x, p }); });
+      // لكل دور خانته وإن تكرر الشخص (منفذ ومنسق ومدير…)؛ ولا تتكرر إلا خانة «المُصدِر» العامة إن كان المُصدِر أحد الموقّعين
+      const rows = S.map((x) => ({ s: x, p: by[x.role || x.staff_id] || (x.name ? { name: x.name, job: x.job || "", image: null } : null) })).filter((z) => z.p);
+      const named = new Set(rows.filter((z) => z.s.role !== "issuer" && z.p.staff_id).map((z) => z.p.staff_id));
+      const list = rows.filter((z) => !(z.s.role === "issuer" && z.p.staff_id && named.has(z.p.staff_id)));
       const box = ({ s, p }) => `<div class="rk-sg"><small>${esc(s.label || "")}</small><span class="im">${p.image ? `<img src="${p.image}" alt="توقيع ${esc(p.name)}">` : `<i>لم يُحفظ توقيع</i>`}</span><b>${esc(p.name)}</b>${p.job ? `<em>${esc(p.job)}</em>` : ""}</div>`;
-      if (seen.size) o.body = (o.body || "") + `<div class="rk-sigs" data-n="${seen.size}">${[...seen.values()].map(box).join("")}</div>`;
+      if (list.length) o.body = (o.body || "") + `<div class="rk-sigs" data-n="${list.length}">${list.map(box).join("")}</div>`;
     } catch (e) { console.warn("ReportKit signatures:", e); }
   }
   async function issueDoc(o) {

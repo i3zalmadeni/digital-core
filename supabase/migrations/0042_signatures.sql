@@ -48,3 +48,5 @@ end $f$;
 
 revoke all on function public.core_my_signature(), public.core_set_my_signature(text), public.core_signatures(uuid[], text[]) from public, anon;
 grant execute on function public.core_my_signature(), public.core_set_my_signature(text), public.core_signatures(uuid[], text[]) to authenticated;
+
+-- 0043 (مطبّق): core_signatures يقبل أيضاً الدور coordinator:<رمز النظام> (منسق النظام الفعّال في staff_roles)، مثل coordinator:self_evaluation
