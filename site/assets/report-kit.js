@@ -7,7 +7,7 @@
      ReportKit.print({ sb, system: "mirat", systemName: "مرآة | الملف الشامل", title, sub, body, issuer, year })
      ReportKit.printElement(el, { ...نفس الخيارات })   // يطبع محتوى عنصر قائم بأنماط صفحته
    خيارات أخرى: systemLogo (رابط شعار النظام، الافتراضي favicon.svg للنظام)، styles (CSS إضافي)، fname،
-   signers (التوقيعات الإلكترونية آخر التقرير؛ الافتراضي: أصحاب العلاقة المعلَّمون في المحتوى بـ data-sign (وإلا المُصدِر) ثم منسق النظام ثم مدير المدرسة؛
+   signers (التوقيعات الإلكترونية آخر التقرير؛ الافتراضي: أصحاب العلاقة المعلَّمون في المحتوى بـ data-sign ثم منسق النظام ثم مدير المدرسة، ولا يوقّع المُصدِر؛
      { role: "coordinator" } = منسق النظام المُصدِر، و false لإلغائها)،
    flow (تدفق متصل: القسم يكمل في الصفحة نفسها ويُقسَّم عند نهايتها، ولا ينتقل لصفحة جديدة إلا إذا لم يتسع شيء بعد عنوانه)،
    publicFull (عرض النسخة الكاملة للعامة في صفحة التحقق؛ الافتراضي لا)، inheritCss (تضمين أنماط الصفحة). */
@@ -264,7 +264,7 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
     try { const [me, yr] = await Promise.all([o.issuer ? null : sb.rpc("current_staff_id").then((r) => r.data ? sb.from("staff_members").select("full_name").eq("id", r.data).maybeSingle() : null), o.year ? null : sb.from("academic_years").select("name").eq("status", "current").maybeSingle()]); if (me && me.data) o.issuer = me.data.full_name; if (yr && yr.data) o.year = yr.data.name; } catch (e) { /* بيانات اختيارية */ }
   }
   /* التوقيعات الإلكترونية (core_signatures): تُضاف آخر التقرير تلقائياً عند الإصدار.
-     signers: [{ label, role: "principal"|"issuer"|"coordinator:<رمز النظام>" } | { label, staff_id } | { label, name }]؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها.
+     signers: [{ label, role: "principal"|"coordinator"|"coordinator:<رمز النظام>" } | { label, staff_id } | { label, name }]؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها.
      لكل دور خانته ولو كان الشخص نفسه في أكثر من دور؛ وتُحذف خانة «المُصدِر» العامة إن كان أحد الموقّعين. ومن لم يحفظ توقيعه يظهر اسمه وخانة فارغة. */
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const COORD = { labeed_facilities: "facility_booking", student_incentives: "qiyami" };   // رمز النظام في الطباعة ← رمزه في أدوار المنسقين
@@ -277,10 +277,11 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
       .filter((x) => UUID.test(x.staff_id) && !seen.has(x.staff_id) && seen.add(x.staff_id));
     const coord = { role: "coordinator:" + (COORD[o.system] || o.system), label: "منسق " + (o.systemName || "النظام") };
     const base = o.signers ? o.signers.map((x) => (x && x.role === "coordinator" ? Object.assign({}, x, { role: coord.role }) : x))
-      : [...(marked.length ? [] : [{ role: "issuer", label: "مُصدِر التقرير" }]), coord, { role: "principal", label: "مدير المدرسة" }];
+      : [coord, { role: "principal", label: "مدير المدرسة" }];
     const have = new Set(base.filter((x) => x && x.staff_id).map((x) => x.staff_id));
     // الافتراضي: أصحاب العلاقة ثم منسق النظام ثم المدير؛ والقائمة الصريحة يُضاف إليها من عُلِّم في المحتوى ولم يُذكر فيها
-    const S = [...marked.filter((x) => !have.has(x.staff_id)), ...base].filter((x) => x && (x.role || x.staff_id || x.name));
+    // لا يوقّع مُصدِر المطبوع بصفته مُصدِرًا: أصحاب العلاقة ثم منسق النظام ثم مدير المدرسة فقط
+    const S = [...marked.filter((x) => !have.has(x.staff_id)), ...base].filter((x) => x && x.role !== "issuer" && (x.role || x.staff_id || x.name));
     if (!S.length) return;
     try {
       const ids = S.filter((x) => x.staff_id).map((x) => x.staff_id), roles = S.filter((x) => x.role).map((x) => x.role);
