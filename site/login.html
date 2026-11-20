@@ -25,7 +25,7 @@ const safeNext = (raw) => {
 };
 const qs = new URLSearchParams(location.search);
 const nxt = safeNext(qs.get("next"));
-const after = () => location.replace(nxt ? nxt.href : "dashboard.html");
+const after = () => location.replace(nxt ? nxt.href : "lbeed.html");
 if (nxt && nxt.name !== "النواة الرقمية") document.getElementById("to").textContent = nxt.name;
 const MSG = {
   nostaff: "هذا الحساب غير مرتبط بسجل منسوب. راجع مدير النواة.",

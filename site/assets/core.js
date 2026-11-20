@@ -92,9 +92,30 @@ async function showHistory(table, id, title) {
 ICONS.assign = '<path d="M9 3h6l1 2h3v16H5V5h3zM9 13l2 2 4-4"/>';
 ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 20.5V5.5M8 7h8M8 11h6"/>';
 ICONS.pulse = '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>';
-const NAV = [["dashboard.html", "مكتبي الإلكتروني", "home", "ملخص النواة والأعداد المحسوبة"], ["lbeed.html", "يحدث في لبيد", "pulse", "نافذة موحدة لما يجري في أنظمة المدرسة (قراءة فقط)"], ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول"], ["staff.html", "المنسوبون", "users", "المنسوبون العاملون حالياً (عرض فقط)", "personnel:view|users:manage", "personnel_total"],
-  ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total"], ["teaching.html", "إسناد التدريس", "book", "معلم كل مادة في كل فصل للعام الحالي", "school:view"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total"],
-  ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة"], ["guide.html", "دليل الوظائف والتكليفات", "book", "المسميات الوظيفية واللجان وفرق العمل ومهامها حسب الدليل التنظيمي", "admin"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور"], ["access.html", "الصلاحيات", "lock", "المستخدمون وحالاتهم وحساباتهم وأدوارهم وصلاحياتهم", "users:manage"], ["publish.html", "النشر في الموقع", "eye", "المفتاح العام ونشر المنسوبين في الموقع العام", "admin"], ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin"]];
+// القائمة: 7 تبويبات في ثلاث مجموعات (الرئيسية · السجلات الأربعة · العمل والإدارة). [href, الاسم, الأيقونة, الوصف, الصلاحية, الشارة, المجموعة]
+const NAV = [["lbeed.html", "الرئيسية", "home", "مؤشرات المدرسة وما يجري في أنظمتها الآن", null, null, "home"],
+  ["school.html", "المدرسة", "school", "الملف والقيادة والأعوام والمراحل والفصول وإسناد التدريس", null, null, "reg"],
+  ["staff.html", "المنسوبون", "users", "سجل المنسوبين وحساباتهم وأدوارهم وصلاحياتهم ونشرهم في الموقع", "personnel:view|users:manage", "personnel_total", "reg"],
+  ["students.html", "المتعلمون", "cap", "الهوية والتسجيل لكل عام", "students:view", "students_total", "reg"], ["facilities.html", "المرافق", "building", "الموقع والمسؤولون والتجهيزات", null, "facilities_total", "reg"],
+  ["assignments.html", "التكليفات", "assign", "التكليفات الأساسية والفرعية والإقرار والمتابعة، ودليل الوظائف المرجعي", null, null, "work"], ["profile.html", "حسابي", "user", "بياناتي وتغيير كلمة المرور", null, null, "work"],
+  ["settings.html", "إدارة البوابة", "gear", "الأنظمة المرتبطة والمفاتيح والسجلات والتكامل", "admin", null, "work"]];
+// الصفحات الفرعية: تبويبات داخل تبويب رئيسي واحد. [href, الاسم, الصلاحية]
+const SUBNAV = {
+  "school.html": [["school.html#profile", "بيانات المدرسة"], ["school.html#lead", "القيادة المدرسية"], ["school.html#years", "الأعوام الدراسية"], ["school.html#classes", "المراحل والفصول"], ["teaching.html", "إسناد التدريس", "school:view"]],
+  "staff.html": [["access.html", "المنسوبون والحسابات", "users:manage"], ["staff.html", "سجل المنسوبين", "personnel:view"], ["publish.html", "النشر في الموقع", "admin"]],
+  "assignments.html": [["assignments.html", "التكليفات"], ["guide.html", "الدليل المرجعي", "admin"]] };
+const NAV_PARENT = { "teaching.html": "school.html", "access.html": "staff.html", "publish.html": "staff.html", "guide.html": "assignments.html", "assignment.html": "assignments.html" };
+// مؤشرات المدرسة (كانت في «مكتبي الإلكتروني»): تظهر أعلى الرئيسية للوحة المنسق
+async function kpiStrip(host, c) {
+  const P = { users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.8c1.9.7 3.2 2.3 3.5 5.2"/>', cap: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.4 2.7 3 6 3s6-1.6 6-3v-4.5"/>',
+    grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
+    building: '<path d="M4 21V5a2 2 0 012-2h8a2 2 0 012 2v16M16 9h2a2 2 0 012 2v10M2 21h20M8 7h4M8 11h4M8 15h4"/>', seat: '<path d="M5 11V8a3 3 0 013-3h8a3 3 0 013 3v3M3 14a2 2 0 014 0v2h10v-2a2 2 0 014 0v4H3zM6 18v2M18 18v2"/>' };
+  const { data: s } = await sb.rpc("school_stats"); const d = s || {};
+  const k = (i, v, t, n, h) => `<a class="kpi k${n}" href="${h}" style="text-decoration:none;color:inherit"><div class="ic"><svg viewBox="0 0 24 24">${P[i]}</svg></div><div><b>${v ?? 0}</b><span>${t}</span></div></a>`;
+  const sv = c.can("personnel:view") || c.can("users:manage");
+  host.innerHTML = (d.current_year || !c.isAdmin ? "" : '<div class="alert"><a href="school.html#years">إنشاء العام الدراسي الأول ←</a></div>') +
+    `<div class="grid kp-home">${k("users", d.personnel_total, "إجمالي المنسوبين", 0, sv ? "staff.html" : "#")}${k("cap", d.students_total, "المتعلمون المنتظمون", 1, c.can("students:view") ? "students.html" : "#")}${k("grid", d.classes_total, "الفصول الدراسية", 2, "school.html#classes")}${k("building", d.facilities_total, "المرافق", 3, "facilities.html")}${k("seat", d.capacity, "الطاقة الاستيعابية", 4, "facilities.html")}</div>`;
+}
 async function boot(page, render, o = {}) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.replace("login.html"); return; }
@@ -122,18 +143,31 @@ async function boot(page, render, o = {}) {
   const rvCan = !staffOnly, rvView = window.RoleSwitch ? RoleSwitch.view("core", session.user.id, rvCan) : "coord", asCoord = rvCan && rvView === "coord";
   if (rvCan && !asCoord) { isAdmin = false; can = () => false; staffOnly = true; }
   if (staffOnly && !["profile.html", "password.html", "inbox.html", "assignments.html", "assignment.html", "lbeed.html"].includes(page)) { location.replace("profile.html"); return; }
-  if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("dashboard.html"); return; }
+  if ((o.admin && !isAdmin) || (o.perm && !can(o.perm))) { location.replace("lbeed.html"); return; }
+  // من يدير المستخدمين يجد السجل كاملاً مع التعديل في «المنسوبون والحسابات»، فلا يُعرض له سجل الاطلاع المكرر
+  if (page === "staff.html" && can("users:manage")) { location.replace("access.html" + location.search); return; }
   const ctx = { me, isAdmin, can, staffOnly, uid: session.user.id, rvCan, asCoord };
-  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n) : NAV.filter((n) => (!n[4] || (n[4] === "admin" ? isAdmin : n[4].split("|").some(can))) && !(asCoord && n[0] === "profile.html"));
-  const cur = NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
+  const allow = (p) => !p || (p === "admin" ? isAdmin : p.split("|").some(can));
+  const subsOf = (h) => (SUBNAV[h] || []).filter((x) => allow(x[2]) && !(x[0] === "staff.html" && can("users:manage")));
+  const items = staffOnly ? NAV.filter((n) => n[0] === "profile.html" || n[0] === "assignments.html" || n[0] === "lbeed.html").map((n) => n[0] === "assignments.html" ? [n[0], "تكليفاتي", ...n.slice(2)] : n[0] === "lbeed.html" ? [n[0], "يحدث في لبيد", n[2], "نافذة موحدة لما يجري في أنظمة المدرسة (قراءة فقط)", ...n.slice(4)] : n)
+    : NAV.filter((n) => allow(n[4]) && !(asCoord && n[0] === "profile.html")).map((n) => { const f = subsOf(n[0])[0]; return f ? [f[0], ...n.slice(1), n[0]] : [...n, n[0]]; });
+  const parent = staffOnly ? page : (NAV_PARENT[page] || page);
+  const cur = items.find((n) => (n[7] || n[0]) === parent) || NAV.find((n) => n[0] === page) || [page, o.title || "لوحة التحكم", "grid", o.desc || "لوحة تحكم النواة الرقمية"];
+  const subs = staffOnly ? [] : subsOf(parent), subHTML = subs.length > 1 ? `<div class="subnav" role="navigation" aria-label="${esc(cur[1])}">${subs.map(([h, n]) => `<a href="${h}">${esc(n)}</a>`).join("")}</div>` : "";
+  // التبويب الفرعي النشط: الصفحة نفسها، أو الصفحة مع القسم (#) في صفحة «المدرسة»
+  const subMark = () => { const L = [...document.querySelectorAll(".subnav a")], at = page + location.hash, hit = L.find((a) => a.getAttribute("href") === at) || L.find((a) => a.getAttribute("href").split("#")[0] === page);
+    L.forEach((a) => { const on = a === hit; a.classList.toggle("on", on); on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"); });
+    if (hit) { const w = hit.parentElement; w.scrollLeft += hit.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - hit.offsetWidth) / 2; } };
+  const navHTML = items.map(([h, n, e, t, , bd, g, key], i) => `${i && g !== items[i - 1][6] ? '<span class="dsep" aria-hidden="true"></span>' : ""}<a href="${h}" title="${esc(t)}" class="${(key || h) === parent ? "on" : ""}" ${(key || h) === parent ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("");
   document.getElementById("shell").innerHTML =
-    `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "dashboard.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
+    `<header class="dash"><div class="wrap top">${brandHTML(staffOnly ? "profile.html" : "lbeed.html")}<div class="idl"><a class="sitelink" href="index.html">الموقع الإلكتروني</a>${headMoe}</div></div>
      <div class="strip" aria-hidden="true"></div>
-     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${items.map(([h, n, e, t, , bd]) => `<a href="${h}" title="${esc(t)}" class="${h === page ? "on" : ""}" ${h === page ? 'aria-current="page"' : ""}>${ico(e)}${n}${bd ? `<span class="bdg" data-b="${bd}"></span>` : ""}</a>`).join("")}</div>
+     <div class="dnav"><div class="wrap dn"><button type="button" class="dmb" id="dmb" aria-expanded="false" aria-controls="dnavIn">${ico("menu")}<span class="dmb-t">القائمة</span><svg class="dmb-ch" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="dnav-in" id="dnavIn">${navHTML}</div>
      <div class="dwho">${ubBarHTML(me.full_name, "profile.html", "password.html")}</div></div></div></header>
      <div class="pagebar"><div class="wrap pb"><div class="pb-t"><small>${isAdmin ? "مدير النواة الرقمية" : "لوحة التحكم"}</small><h1>${esc(cur[1])}</h1></div><p class="pb-d">${esc(cur[3])}</p>
      <div class="pb-u"><span id="pbTime"></span><button class="btn sec sm" id="pbRefresh" type="button">${ico("refresh")}تحديث</button></div></div></div>
-     <div class="wrap" id="topnote"></div><main class="wrap" id="main"></main>${footerHTML}`; bindNav();
+     <div class="wrap" id="topnote"></div>${subHTML ? `<div class="wrap subnav-w">${subHTML}</div>` : ""}<main class="wrap" id="main"></main>${footerHTML}`; bindNav();
+  subMark(); addEventListener("hashchange", subMark);
   // قائمة الجوال: زر «القائمة» يفتح لائحة عمودية بكل التبويبات (على الشاشات العريضة يبقى الشريط الأفقي كما هو)
   (() => { const d = document.querySelector(".dnav"), b = document.getElementById("dmb"); if (!d || !b) return;
     const set = (o) => { d.classList.toggle("open", o); b.setAttribute("aria-expanded", o); };
@@ -145,15 +179,15 @@ async function boot(page, render, o = {}) {
   })();
   if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "core", central: true, after: "#main" });
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
-    PK.mountAnnouncements({ sb, system: "core", page: page === "dashboard.html" || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
-    if (page === "dashboard.html" || (staffOnly && page === "profile.html")) { const wc = PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" });
+    PK.mountAnnouncements({ sb, system: "core", page: (page === "lbeed.html" && !staffOnly) || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
+    if ((page === "lbeed.html" && !staffOnly) || (staffOnly && page === "profile.html")) { const wc = PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" });
       // لوحة المعلم: رابط الملف المهني (في المجتمع المهني الذكي) بجانب «منسوب»
       const rp = staffOnly && wc && wc.querySelector(".pk-wc-t p"); if (rp) rp.insertAdjacentHTML("afterend", '<a class="pk-wc-pf" href="/teachers-community/#/home/profile">زيارة الملف المهني <span aria-hidden="true">←</span></a>'); } }
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };
   // الإشعارات: كلمة المرور الافتراضية لكل منسوب، ولمدير النواة آخر العمليات على سجلات النواة من غيره (مجمّعة)، و«مشاهدة الكل» سجل العمليات
-  if (window.RoleSwitch) RoleSwitch.mount({ sys: "core", uid: session.user.id, can: rvCan, view: rvView, home: { coord: "dashboard.html", teacher: "profile.html" }, teacherDesc: "حسابي وتكليفاتي", coordDesc: "سجلات النواة والصلاحيات والإدارة" });
+  if (window.RoleSwitch) RoleSwitch.mount({ sys: "core", uid: session.user.id, can: rvCan, view: rvView, home: { coord: "lbeed.html", teacher: "profile.html" }, teacherDesc: "حسابي وتكليفاتي", coordDesc: "سجلات النواة والصلاحيات والإدارة" });
   ubMount({ key: "core", uid: session.user.id, allUrl: "inbox.html", load: async () => {
     const N = [];
     const { data: pv } = await sb.from("staff_private").select("must_change_password").eq("staff_id", me.id).maybeSingle();

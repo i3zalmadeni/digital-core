@@ -4,7 +4,7 @@ const PFIELDS = [["official_name", "الاسم الرسمي *"], ["ministry_no",
 
 boot("school.html", async (m, c) => {
   const canPub = c.isAdmin, canEdit = c.can("school:edit"), canCls = c.can("students:edit");
-  let P = {}, years = [], lead = [], grades = [], sections = [], stats = [], staff = [], tab = location.hash === "#years" ? "years" : "profile";
+  let P = {}, years = [], lead = [], grades = [], sections = [], stats = [], staff = [], tab = ["years", "lead", "classes"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "profile";
   async function load() {
     const [a, b, d, e, f, g, h] = await Promise.all([sb.from("school_profile").select("*").maybeSingle(), sb.from("academic_years").select("*").order("created_at", { ascending: false }),
       sb.from("school_leadership").select("*,staff_members(full_name)").order("started_on", { ascending: false }), sb.from("grade_levels").select("*").order("sort_order"),
@@ -15,11 +15,14 @@ boot("school.html", async (m, c) => {
   const cur = () => years.find((y) => y.status === "current");
   const TABS = [["profile", "بيانات المدرسة"], ["lead", "القيادة المدرسية"], ["years", "الأعوام الدراسية"], ["classes", "المراحل والفصول"]];
   function paint() {
-    m.innerHTML = head("المدرسة", "الملف المعلوماتي المركزي للمدرسة") + `<div class="tabs">${TABS.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${n}</button>`).join("")}</div><div id="body"></div>`;
+    // التبويبات في الشريط الفرعي أعلى الصفحة (#profile …) مع «إسناد التدريس»؛ وإن غاب الشريط تظهر هنا
+    const sub = !!document.querySelector(".subnav"), tn = TABS.find((x) => x[0] === tab)[1];
+    m.innerHTML = (sub ? head(tn, "الملف المعلوماتي المركزي للمدرسة") : head("المدرسة", "الملف المعلوماتي المركزي للمدرسة") + `<div class="tabs">${TABS.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${n}</button>`).join("")}</div>`) + '<div id="body"></div>';
     m.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { tab = b.dataset.t; paint(); }));
     ({ profile, lead: leadership, years: yearsTab, classes })[tab](m.querySelector("#body"));
   }
   const rerun = async () => { await load(); paint(); };
+  addEventListener("hashchange", () => { const h = location.hash.slice(1); if (TABS.some((x) => x[0] === h) && h !== tab) { tab = h; paint(); } });
 
   function profile(b) {
     const fld = ([k, l, t]) => t === "bool" ? `<div class="full"><label class="chk"><input type="checkbox" name="${k}" ${P[k] !== false ? "checked" : ""} ${canEdit && canPub ? "" : "disabled"} style="width:auto"> ${esc(l)}${canPub ? "" : " <small class='sub'>(من اختصاص مدير النواة الرقمية)</small>"}</label></div>` : `<div class="${t === "area" ? "full" : ""}"><label>${esc(l)}</label>${t === "gender" ? `<select name="${k}" ${canEdit ? "" : "disabled"}><option value="">—</option>${opts(L.gender, P[k])}</select>` : t === "area" ? `<textarea name="${k}" ${canEdit ? "" : "disabled"}>${esc(P[k])}</textarea>` : `<input name="${k}" ${t === "num" ? 'type="number" step="any"' : ""} value="${esc(P[k])}" ${canEdit ? "" : "disabled"}>`}</div>`;

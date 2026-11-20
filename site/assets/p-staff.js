@@ -1,7 +1,7 @@
 const CAT_AR2 = { teaching: "الهيئة التعليمية", administrative: "الهيئة الإدارية", support: "الهيئة المساندة" };
 boot("staff.html", async (m, c) => {
   // المنسوبون: عرض فقط للمنسوبين المعتمدين العاملين حالياً (على رأس العمل أو في إجازة). كل التعديل من «الصلاحيات».
-  if (!(c.can("personnel:view") || c.can("users:manage"))) { location.replace("dashboard.html"); return; }
+  if (!(c.can("personnel:view") || c.can("users:manage"))) { location.replace("lbeed.html"); return; }
   const cats = await sb.from("staff_categories").select("*").order("sort_order"), C = cats.data || [];
   const canContact = c.can("personnel_contact:view") || c.can("personnel:edit") || c.can("users:manage");
   let rows = [], priv = {};
@@ -10,7 +10,7 @@ boot("staff.html", async (m, c) => {
   const LIVE_L = { active: L.emp.active, on_leave: L.emp.on_leave };
   m.innerHTML = head("المنسوبون", "المنسوبون المعتمدون العاملون في المدرسة حالياً، للاطلاع فقط") +
     `<div class="bar"><input id="q" placeholder="بحث بالاسم أو التخصص أو القسم"><select id="fc"><option value="">كل الفئات</option>${C.map((x) => `<option value="${x.code}">${esc(x.name_ar)}</option>`).join("")}</select>
-     <select id="fe"><option value="">كل الحالات</option>${opts(LIVE_L)}</select><button class="btn sec" id="ex">تصدير Excel</button><button class="btn sec" id="hs">سجل التغييرات</button>${c.can("users:manage") ? '<a class="btn" href="access.html">إدارة المستخدمين</a>' : ""}</div>
+     <select id="fe"><option value="">كل الحالات</option>${opts(LIVE_L)}</select><button class="btn sec" id="ex">تصدير Excel</button><button class="btn sec" id="hs">سجل التغييرات</button></div>
      <div class="tw"><table><thead><tr><th>الاسم</th><th>الفئة</th><th>المسمى</th><th>التخصص</th><th>القسم</th><th>الحالة</th><th></th></tr></thead><tbody id="tb"></tbody></table></div><p class="sub" id="cnt"></p>`;
   const fc = m.querySelector("#fc"); if (qs("cat")) fc.value = qs("cat");
   function filtered() {

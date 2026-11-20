@@ -1123,3 +1123,14 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
 .pk-wc-t .pk-wc-pf{display:inline-block;vertical-align:top;margin:6px 8px 0 0;padding:3px 14px;border-radius:99px;border:1.5px solid rgba(255,255,255,.75);color:#fff;font-size:.92rem;font-weight:800;text-decoration:none;transition:background .2s,color .2s}
 .pk-wc-t .pk-wc-pf:hover{background:#fff;color:#0c3442}
 .pk-wc-t .pk-wc-pf:focus-visible{outline:3px solid #f6c25e;outline-offset:2px}
+
+/* ===== تقليص القائمة (2026-11-20): فواصل المجموعات والتبويبات الفرعية ===== */
+.dnav-in .dsep{flex:none;align-self:center;width:1px;height:22px;margin-inline:3px;background:rgba(255,255,255,.22)}.dnav-in .dsep:has(+ a.pk-hid){display:none}
+@media (min-width:761px){.dn .dnav-in a{padding-inline:12px}}
+.subnav-w{margin-top:16px}
+.subnav{display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}.subnav::-webkit-scrollbar{display:none}
+.subnav a{white-space:nowrap;padding:10px 16px;color:var(--muted);text-decoration:none;font-weight:600;border-bottom:3px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s}
+.subnav a:hover{color:var(--ink)}
+.subnav a.on{color:var(--brand2);border-bottom-color:var(--gold)}
+.kp-home{margin-bottom:18px}
+@media (max-width:760px){.dn .dnav-in .dsep{width:auto;height:1px;margin:4px 10px}.subnav a{padding:10px 12px;min-height:44px;display:flex;align-items:center}}
