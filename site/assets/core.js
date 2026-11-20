@@ -146,7 +146,9 @@ async function boot(page, render, o = {}) {
   if (window.PK && page === "settings.html") PK.mountAdminSection({ sb, system: "core", central: true, after: "#main" });
   if (window.PK) { PK.fitNav(document.querySelector(".dnav-in"));
     PK.mountAnnouncements({ sb, system: "core", page: page === "dashboard.html" || (staffOnly && page === "profile.html") ? "home" : "all", before: ".pagebar" });
-    if (page === "dashboard.html" || (staffOnly && page === "profile.html")) PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" }); }
+    if (page === "dashboard.html" || (staffOnly && page === "profile.html")) { const wc = PK.welcome("#main", { mode: "before", sb, name: me.full_name, role: isAdmin ? "مدير النواة الرقمية" : can("users:manage") ? "مدير المستخدمين والصلاحيات" : staffOnly ? "منسوب" : "مشرف على سجلات النواة" });
+      // لوحة المعلم: رابط الملف المهني (في المجتمع المهني الذكي) بجانب «منسوب»
+      const rp = staffOnly && wc && wc.querySelector(".pk-wc-t p"); if (rp) rp.insertAdjacentHTML("afterend", '<a class="pk-wc-pf" href="/teachers-community/#/home/profile">زيارة الملف المهني <span aria-hidden="true">←</span></a>'); } }
   document.getElementById("pbTime").textContent = "حُدِّثت " + new Date().toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "numeric", minute: "2-digit" });
   document.getElementById("pbRefresh").onclick = () => location.reload();
   document.getElementById("out").onclick = (e) => { e.preventDefault(); doLogout(); };

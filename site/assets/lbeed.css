@@ -907,3 +907,9 @@ tr.lgd td{background:#f6fafb;padding:4px 10px 12px}
 tr.lgd .ixp{margin-top:6px}
 @media(max-width:560px){.ixp{padding:12px}.ixp .dg img{height:130px}.lb-docs .ixh,.lb-top .ixh{padding:0 12px}}
 @media (prefers-reduced-motion:reduce){.ixp{animation:none}}
+
+/* الجوال: صفوف «آخر ما أُضيف من نمو مهني» و«الخطط الذكية» تُسحب داخل حدود بطاقتها (لا تمتد إلى حافتها) */
+@media(max-width:700px){
+  .lb-gr .gl2,.lb-pg .plg,.lb-pg .pgl{margin-inline:0;padding-inline:0;scroll-padding-inline:0}
+  .lb-pg .plg>.sela{scroll-snap-align:start} /* «كل الخطط» أول ما يظهر بدل أن يُسحب خارج البطاقة */
+}
