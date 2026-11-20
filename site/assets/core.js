@@ -24,7 +24,8 @@ const L = {
   act: { INSERT: "إضافة", UPDATE: "تعديل", DELETE: "حذف", rotate_key: "تجديد مفتاح", change_password: "تغيير كلمة المرور", reset_password: "استعادة كلمة المرور الافتراضية", update_contact: "تحديث بيانات التواصل", bulk_accounts: "إنشاء حسابات المنسوبين" },
 };
 const opts = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${esc(v)}</option>`).join("");
-const head = (t, s) => `<h2>${esc(t)}</h2>${s ? `<p class="sub">${esc(s)}</p>` : ""}`;
+// عنوان القسم داخل المحتوى؛ ويُحذف إن كان هو عنوان الشريط الأبيض نفسه (لا تكرار للعنوان في الصفحات بلا تبويبات فرعية)
+const head = (t, s) => (document.querySelector(".pagebar h1")?.textContent.trim() === t ? "" : `<h2>${esc(t)}</h2>${s ? `<p class="sub">${esc(s)}</p>` : ""}`);
 const today = () => new Date().toISOString().slice(0, 10);
 const nn = (v) => (v === "" || v === undefined || v === null ? null : typeof v === "string" ? v.trim() || null : v);
 const num = (v) => (v === "" || v === undefined || v === null ? null : Number(v));
@@ -94,6 +95,10 @@ ICONS.book = '<path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5zM4 
 ICONS.flag = '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>';
 ICONS.cal = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>';
 ICONS.eye = '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>';
+ICONS.list = '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>';
+ICONS.upload = '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/>';
+ICONS.code = '<path d="M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16"/>';
+ICONS.save = '<path d="M5 3h11l3 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2z"/><path d="M8 3v5h7M8 21v-7h8v7"/>';
 ICONS.pulse = '<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>';
 // القائمة: 7 تبويبات في ثلاث مجموعات (الرئيسية · السجلات الأربعة · العمل والإدارة). [href, الاسم, الأيقونة, الوصف, الصلاحية, الشارة, المجموعة]
 const NAV = [["lbeed.html", "الرئيسية", "home", "مؤشرات المدرسة وما يجري في أنظمتها الآن", null, null, "home"],
@@ -106,7 +111,8 @@ const NAV = [["lbeed.html", "الرئيسية", "home", "مؤشرات المدر
 const SUBNAV = {
   "school.html": [["school.html#profile", "بيانات المدرسة", null, "school"], ["school.html#lead", "القيادة المدرسية", null, "flag"], ["school.html#years", "الأعوام الدراسية", null, "cal"], ["school.html#classes", "المراحل والفصول", null, "grid"], ["teaching.html", "إسناد التدريس", "school:view", "book"]],
   "staff.html": [["access.html", "المنسوبون والحسابات", "users:manage", "users"], ["staff.html", "سجل المنسوبين", "personnel:view", "users"], ["publish.html", "النشر في الموقع", "admin", "globe"]],
-  "assignments.html": [["assignments.html", "التكليفات", null, "assign"], ["guide.html", "الدليل المرجعي", "admin", "book"]] };
+  "assignments.html": [["assignments.html", "التكليفات", null, "assign"], ["guide.html", "الدليل المرجعي", "admin", "book"]],
+  "settings.html": [["settings.html#systems", "الأنظمة والتكامل", null, "grid"], ["settings.html#logs", "سجل الوصول", null, "key"], ["settings.html#audit", "سجل العمليات", null, "list"], ["settings.html#imports", "عمليات الاستيراد", null, "upload"], ["settings.html#api", "توثيق الواجهة", null, "code"], ["settings.html#backup", "النسخ والاستعادة", null, "save"]] };
 const NAV_PARENT = { "teaching.html": "school.html", "access.html": "staff.html", "publish.html": "staff.html", "guide.html": "assignments.html", "assignment.html": "assignments.html" };
 // مؤشرات المدرسة (كانت في «مكتبي الإلكتروني»): تظهر أعلى الرئيسية للوحة المنسق
 async function kpiStrip(host, c) {
@@ -208,7 +214,7 @@ async function boot(page, render, o = {}) {
       const G = new Map();
       rows.forEach((r) => { const day = new Date(r.created_at).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }), k = [r.actor_id, r.table_name, r.action, day].join("|");
         const g = G.get(k); if (g) g.n++; else G.set(k, { r, n: 1, day }); });
-      [...G.values()].slice(0, 12).forEach(({ r, n, day }) => N.push({ id: "a:" + r.id + ":" + n, t: r.created_at, tone: AC[r.action][1], icon: AC[r.action][2], href: "settings.html?tab=audit",
+      [...G.values()].slice(0, 12).forEach(({ r, n, day }) => N.push({ id: "a:" + r.id + ":" + n, t: r.created_at, tone: AC[r.action][1], icon: AC[r.action][2], href: "settings.html#audit",
         title: `${AC[r.action][0]} في ${T[r.table_name]}${n > 1 ? ` (${n === 2 ? "سجلان" : n <= 10 ? n + " سجلات" : n + " سجلاً"})` : ""}`, body: `بواسطة ${nm[r.actor_id] || "النظام"}` }));
     }
     return N;

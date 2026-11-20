@@ -3,10 +3,14 @@ const SYS_ST = { planned: "مخطط", active: "نشط", suspended: "موقوف" 
 const IMP_TABLE = { personnel: "staff_members", students: "students", facilities: "facilities" };
 boot("settings.html", async (m, c) => {
   let tab = "systems";
-  { const q = new URLSearchParams(location.search).get("tab"); if (["systems", "logs", "audit", "imports", "api", "backup"].includes(q)) tab = q; }
+  const KEYS = ["systems", "logs", "audit", "imports", "api", "backup"];
+  { const q = new URLSearchParams(location.search).get("tab"), hs = location.hash.slice(1); if (KEYS.includes(hs)) tab = hs; else if (KEYS.includes(q)) { tab = q; history.replaceState(null, "", "settings.html#" + q); dispatchEvent(new HashChangeEvent("hashchange")); } }
+  addEventListener("hashchange", () => { const hs = location.hash.slice(1); if (KEYS.includes(hs) && hs !== tab) { tab = hs; paint(); } });
   const TABS = [["systems", "الأنظمة والتكامل"], ["logs", "سجل الوصول"], ["audit", "سجل العمليات"], ["imports", "عمليات الاستيراد"], ["api", "توثيق الواجهة"], ["backup", "النسخ والاستعادة"]];
   const paint = () => {
-    m.innerHTML = head("إدارة البوابة", "ربط الأنظمة المستقلة بالنواة عبر واجهة قراءة آمنة ومسجلة") + `<div class="tabs">${TABS.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${n}</button>`).join("")}</div><div id="body"></div>`;
+    // التبويبات في الشريط الفرعي الموحد أعلى الصفحة (#systems …)؛ وإن غاب الشريط تظهر هنا
+    const sub = !!document.querySelector(".subnav");
+    m.innerHTML = (sub ? head(TABS.find((x) => x[0] === tab)[1], "ربط الأنظمة المستقلة بالنواة عبر واجهة قراءة آمنة ومسجلة") : head("إدارة البوابة", "ربط الأنظمة المستقلة بالنواة عبر واجهة قراءة آمنة ومسجلة") + `<div class="tabs">${TABS.map(([k, n]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${n}</button>`).join("")}</div>`) + '<div id="body"></div>';
     m.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { tab = b.dataset.t; paint(); }));
     ({ systems, logs, audit, imports, api: apiDoc, backup })[tab](m.querySelector("#body"));
   };
