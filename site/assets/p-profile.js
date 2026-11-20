@@ -63,6 +63,12 @@ boot("profile.html", async (m, c) => {
       <div class="grow"><small class="sub">صورة واحدة تظهر في النواة الرقمية وفي ملفك بالمجتمع المهني. JPG أو PNG أو WebP حتى 5 ميجابايت.</small>
         <div class="acts" style="margin-top:8px"><label class="btn sm" for="phf" style="cursor:pointer">تغيير الصورة</label><input id="phf" type="file" accept="image/jpeg,image/png,image/webp" hidden></div>
         <p class="err" id="phe" role="alert"></p></div></div></div>
+    <div class="card mt" id="sgc"><h3 class="sec" style="margin-top:0">توقيعي الإلكتروني</h3>
+      <p class="sub" style="margin-top:0">ارسم توقيعك مرة واحدة بالإصبع أو الفأرة، فيُضاف تلقائياً إلى التكليفات والتقارير التي تُصدرها أو تُطلب فيها موافقتك. صحة أي تقرير يثبتها رمز التحقق المطبوع عليه.</p>
+      <div id="sgNow" class="sg-now"></div>
+      <div class="sg-pad"><canvas id="sgCv" width="900" height="300" aria-label="مساحة رسم التوقيع"></canvas><span class="sg-ln" aria-hidden="true"></span></div>
+      <div class="acts"><button class="btn" id="sgSv" type="button" disabled>حفظ التوقيع</button><button class="btn sec" id="sgCl" type="button">مسح</button><button class="btn bad" id="sgDl" type="button" hidden>حذف توقيعي المحفوظ</button></div>
+      <p class="err" id="sge" role="alert"></p></div>
     ${pfr.error && itr.error ? "" : `<div id="ppw">${ppRender(r, pfr.data || {}, itr.data || [], rcr.data || [], cmr.data)}</div>`}
     <div class="card mt" id="ct"><h3 class="sec" style="margin-top:0">بيانات التواصل</h3>
       <form id="cf"><div class="fg">
@@ -82,6 +88,28 @@ boot("profile.html", async (m, c) => {
       toast("حُفظت الصورة"); setTimeout(() => location.reload(), 800);
     } catch (x) { er.textContent = x.message || "تعذر رفع الصورة."; }
   };
+  // ===== التوقيع الإلكتروني: رسم على لوحة، وقصّ الفراغ حول التوقيع، وحفظه PNG شفافاً =====
+  (async () => {
+    const cv = g("#sgCv"), cx = cv.getContext("2d"), sv = g("#sgSv"), now = g("#sgNow"), dl = g("#sgDl"), er = g("#sge"); let drawn = false, last = null;
+    const show = (img) => { now.innerHTML = img ? `<span class="sub">توقيعك المحفوظ:</span><img alt="توقيعي" src="${img}">` : '<span class="sub">لم تحفظ توقيعاً بعد.</span>'; dl.hidden = !img; };
+    try { const r = await sb.rpc("core_my_signature"); show(r.data?.image); } catch (_) { show(null); }
+    cx.lineWidth = 5; cx.lineCap = "round"; cx.lineJoin = "round"; cx.strokeStyle = "#0d2b45";
+    const pt = (e) => { const b = cv.getBoundingClientRect(); return [((e.clientX - b.left) * cv.width) / b.width, ((e.clientY - b.top) * cv.height) / b.height]; };
+    cv.addEventListener("pointerdown", (e) => { e.preventDefault(); cv.setPointerCapture(e.pointerId); last = pt(e); cx.beginPath(); cx.arc(last[0], last[1], 2.4, 0, 7); cx.fillStyle = "#0d2b45"; cx.fill(); drawn = true; sv.disabled = false; });
+    cv.addEventListener("pointermove", (e) => { if (!last) return; e.preventDefault(); const p = pt(e); cx.beginPath(); cx.moveTo(last[0], last[1]); cx.lineTo(p[0], p[1]); cx.stroke(); last = p; });
+    ["pointerup", "pointercancel", "pointerleave"].forEach((t) => cv.addEventListener(t, () => (last = null)));
+    g("#sgCl").onclick = () => { cx.clearRect(0, 0, cv.width, cv.height); drawn = false; sv.disabled = true; er.textContent = ""; };
+    const trimmed = () => { const d = cx.getImageData(0, 0, cv.width, cv.height).data; let x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
+      for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) if (d[(y * cv.width + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 - x0 < 20 || y1 - y0 < 10) return null; const pd = 12, w = x1 - x0 + pd * 2, h = y1 - y0 + pd * 2, o = document.createElement("canvas"); o.width = w; o.height = h;
+      o.getContext("2d").drawImage(cv, x0 - pd, y0 - pd, w, h, 0, 0, w, h); return o.toDataURL("image/png"); };
+    sv.onclick = async () => { er.textContent = ""; if (!drawn) return; const img = trimmed(); if (!img) { er.textContent = "التوقيع صغير جداً، ارسمه بحجم أوضح."; return; }
+      sv.disabled = true; const { data, error } = await sb.rpc("core_set_my_signature", { p_image: img });
+      if (error || !data?.ok) { er.textContent = error ? mapErr(error) : "تعذر حفظ التوقيع."; sv.disabled = false; return; }
+      show(img); g("#sgCl").click(); toast("حُفظ توقيعك"); };
+    dl.onclick = async () => { if (!confirm("حذف توقيعك المحفوظ؟ لن يظهر في التقارير التي تصدر بعد الحذف.")) return;
+      const { error } = await sb.rpc("core_set_my_signature", { p_image: null }); if (error) { er.textContent = mapErr(error); return; } show(null); toast("حُذف التوقيع"); };
+  })();
   g("#cf").onsubmit = async (e) => {
     e.preventDefault(); const er = g("#ce"), b = g("#cs"); er.textContent = ""; b.disabled = true;
     const { data, error } = await sb.rpc("core_update_my_contact", { p_email: g("#em").value, p_phone: g("#ph").value }); b.disabled = false;

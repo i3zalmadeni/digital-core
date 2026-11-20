@@ -1114,3 +1114,8 @@ select{max-width:100%;min-width:0;text-overflow:ellipsis}
 .pp-it{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line,#dfe8ea);border-radius:12px}
 .pp-it .grow{flex:1;min-width:0}
 .pp-sk{margin-bottom:10px}
+/* التوقيع الإلكتروني في «حسابي» (0042) */
+.sg-now{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 10px}.sg-now img{max-height:64px;max-width:240px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.sg-pad{position:relative;border:2px dashed #b9cdd5;border-radius:14px;background:#fff;margin-bottom:10px;max-width:640px}
+.sg-pad canvas{display:block;width:100%;aspect-ratio:3/1;touch-action:none;cursor:crosshair;border-radius:12px}
+.sg-ln{position:absolute;inset-inline:8%;bottom:24%;border-bottom:1px solid #d6e4e8;pointer-events:none}

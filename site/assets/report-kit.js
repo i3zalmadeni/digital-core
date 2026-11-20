@@ -7,6 +7,7 @@
      ReportKit.print({ sb, system: "mirat", systemName: "مرآة | الملف الشامل", title, sub, body, issuer, year })
      ReportKit.printElement(el, { ...نفس الخيارات })   // يطبع محتوى عنصر قائم بأنماط صفحته
    خيارات أخرى: systemLogo (رابط شعار النظام، الافتراضي favicon.svg للنظام)، styles (CSS إضافي)، fname،
+   signers (التوقيعات الإلكترونية آخر التقرير؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها)،
    flow (تدفق متصل: القسم يكمل في الصفحة نفسها ويُقسَّم عند نهايتها، ولا ينتقل لصفحة جديدة إلا إذا لم يتسع شيء بعد عنوانه)،
    publicFull (عرض النسخة الكاملة للعامة في صفحة التحقق؛ الافتراضي لا)، inheritCss (تضمين أنماط الصفحة). */
 (() => {
@@ -109,6 +110,13 @@ html,body{margin:0!important;padding:0!important;background:#fff;-webkit-print-c
 #rkRoot .rk-body table{width:100%;border-collapse:collapse;margin:6px 0 10px}#rkRoot .rk-body th,#rkRoot .rk-body td{border:1px solid #b9cdd5;padding:5px 8px;text-align:right;vertical-align:top}#rkRoot .rk-body th{background:#e3f6f7;font-weight:700}
 #rkRoot .rk-body img{max-width:100%}
 #rkRoot .rk-body .kv{display:grid;grid-template-columns:150px 1fr;border-radius:8px;overflow:hidden}#rkRoot .rk-body .kv>div{border:1px solid #b9cdd5;padding:5px 8px;margin:-1px 0 0 -1px}#rkRoot .rk-body .kv>div:nth-child(odd){background:#eef8fa;font-weight:700}
+#rkRoot .rk-sigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(48mm,1fr));gap:4mm;margin:8mm 0 2mm}
+#rkRoot .rk-sg{border:1px solid #c9dbe1;border-radius:10px;padding:2.5mm 3mm;text-align:center;background:#fbfdfd;line-height:1.5}
+#rkRoot .rk-sg small{display:block;font-size:11px;font-weight:800;color:#0c6f82}
+#rkRoot .rk-sg .im{display:flex;align-items:center;justify-content:center;height:20mm;margin:1mm 0 1.5mm;border-bottom:1px dashed #9db4bc}
+#rkRoot .rk-sg .im img{max-height:19mm;max-width:100%;object-fit:contain}
+#rkRoot .rk-sg .im i{font-style:normal;font-size:10px;color:#9db4bc}
+#rkRoot .rk-sg b{display:block;font-size:12.5px;color:#0d2b45}#rkRoot .rk-sg em{display:block;font-style:normal;font-size:10px;color:#71859a}
 #rkRoot .rk-body .box{border:1px solid #c9dbe1;border-radius:8px;padding:8px 12px;margin:6px 0;white-space:pre-wrap;background:#fbfdfd;box-shadow:inset -3px 0 0 #0f8a94}
 #rkRoot .rk-body .gal{display:block;font-size:0;line-height:0}
 #rkRoot .rk-body .gal figure{display:inline-block;vertical-align:top;width:calc(50% - 4px);margin:0 0 8px;font-size:11px;line-height:1.6}
@@ -254,10 +262,28 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
     if (!sb || (o.issuer && o.year)) return;
     try { const [me, yr] = await Promise.all([o.issuer ? null : sb.rpc("current_staff_id").then((r) => r.data ? sb.from("staff_members").select("full_name").eq("id", r.data).maybeSingle() : null), o.year ? null : sb.from("academic_years").select("name").eq("status", "current").maybeSingle()]); if (me && me.data) o.issuer = me.data.full_name; if (yr && yr.data) o.year = yr.data.name; } catch (e) { /* بيانات اختيارية */ }
   }
+  /* التوقيعات الإلكترونية (core_signatures): تُضاف آخر التقرير تلقائياً عند الإصدار.
+     signers: [{ label, role: "principal"|"issuer" } | { label, staff_id }]؛ الافتراضي المُصدِر ومدير المدرسة، و false لإلغائها.
+     إذا كان المُصدِر هو أحد الموقّعين الآخرين يظهر مرة واحدة. ومن لم يحفظ توقيعه يظهر اسمه وخانة توقيع فارغة. */
+  async function sigs(o, sb) {
+    if (o._sigDone) return; o._sigDone = true;
+    if (o.signers === false || !sb) return;
+    const S = (o.signers || [{ role: "issuer", label: "مُصدِر التقرير" }, { role: "principal", label: "مدير المدرسة" }]).filter((x) => x && (x.role || x.staff_id));
+    if (!S.length) return;
+    try {
+      const r = await sb.rpc("core_signatures", { p_staff: S.filter((x) => x.staff_id).map((x) => x.staff_id), p_roles: S.filter((x) => x.role).map((x) => x.role) });
+      if (r.error) throw r.error;
+      const by = {}; (r.data || []).forEach((x) => (by[x.key] = x));
+      const seen = new Map();
+      S.forEach((x) => { const p = by[x.role || x.staff_id]; if (!p) return; const prev = seen.get(p.staff_id); if (prev) { if (prev.s.role === "issuer") prev.s = x; return; } seen.set(p.staff_id, { s: x, p }); });
+      const box = ({ s, p }) => `<div class="rk-sg"><small>${esc(s.label || "")}</small><span class="im">${p.image ? `<img src="${p.image}" alt="توقيع ${esc(p.name)}">` : `<i>لم يُحفظ توقيع</i>`}</span><b>${esc(p.name)}</b>${p.job ? `<em>${esc(p.job)}</em>` : ""}</div>`;
+      if (seen.size) o.body = (o.body || "") + `<div class="rk-sigs" data-n="${seen.size}">${[...seen.values()].map(box).join("")}</div>`;
+    } catch (e) { console.warn("ReportKit signatures:", e); }
+  }
   async function issueDoc(o) {
     const sb = o.sb || defaultClient();
     if (!sb) throw new Error("no client");
-    await fill(o, sb);
+    await fill(o, sb); await sigs(o, sb);
     const id = uuid(), code = id.replace(/-/g, "").slice(0, 16).toUpperCase(), issue = { code, url: VERIFY + "?c=" + code, at: new Date() };
     const paged = await paginate(o, issue);
     const { error } = await sb.from("core_report_issues").insert({ id, code, system: o.system, system_name: String(o.systemName).slice(0, 120), title: String(o.title).slice(0, 500), subtitle: o.sub ? String(o.sub).slice(0, 500) : null, pages: paged.pages.length, public_full: !!o.publicFull, doc_html: doc(o, paged, issue, false) });
@@ -297,7 +323,7 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
     });
   }
   /* معاينة على الشاشة بنفس الهوية والتقسيم (دون رقم تحقق؛ يُصدر الرقم والرمز عند الطباعة): تعيد مستند HTML كاملًا */
-  async function preview(opts) { const o = norm(opts); await fill(o, o.sb || defaultClient()); return doc(o, await paginate(o, null), null, false); }
+  async function preview(opts) { const o = norm(opts); await fill(o, o.sb || defaultClient()); await sigs(o, o.sb || defaultClient()); return doc(o, await paginate(o, null), null, false); }
   const STRIP = ".no-print,.noprint,.np,.rp-bar,.rp-pick,.rp-tip,button,.btn,.acts,nav,.tabs,input,select,textarea,script,#ub,.ub";
   /* طباعة عنصر قائم: محتواه (دون عناصر التحكم) مع أنماط صفحته */
   function printElement(el, opts) {
@@ -314,7 +340,8 @@ ${forPrint ? `<script>(function(){var go=function(){var im=[].slice.call(documen
       const h = el.querySelector("h1,h2,h3");
       const title = (cfg.title && cfg.title(el)) || parts[0] || (h && h.textContent.trim()) || cfg.systemName;
       const sub = cfg.sub ? cfg.sub(el) : parts[1] || "";
-      return printElement(el, { system: cfg.system, systemName: cfg.systemName, systemLogo: cfg.systemLogo, publicFull: cfg.publicFull, title, sub });
+      const signers = typeof cfg.signers === "function" ? cfg.signers(el) : cfg.signers;
+      return printElement(el, { system: cfg.system, systemName: cfg.systemName, systemLogo: cfg.systemLogo, publicFull: cfg.publicFull, title, sub, ...(signers !== undefined ? { signers } : {}) });
     };
   }
   window.ReportKit = { print, preview, printElement, install, nativePrint: NATIVE_PRINT, QR, VERIFY };
