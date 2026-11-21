@@ -913,6 +913,18 @@ tr.lgd .ixp{margin-top:6px}
   .lb-gr .gl2,.lb-pg .plg,.lb-pg .pgl{margin-inline:0;padding-inline:0;scroll-padding-inline:0}
   .lb-pg .plg>.sela{scroll-snap-align:start} /* «كل الخطط» أول ما يظهر بدل أن يُسحب خارج البطاقة */
 }
+/* ===== الترحيب و«يحدث في لبيد» في مربع واحد (بطاقة PK.welcome مدموجة في الغلاف) ===== */
+.lb-merged .row{gap:22px}
+.lb-merged .pk-wc-av{width:96px;height:96px}
+.lb-merged .pk-wc-t{flex:0 1 auto;min-width:0}
+.lb-merged .lb-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;color:rgba(255,255,255,.88);font-size:.88rem;font-weight:600}
+.lb-merged .lb-sub b{color:#fff;font-weight:800}
+.lb-merged .dtm .pk-wc-y{margin-bottom:2px}
+@media(max-width:760px){.lb-merged .pk-wc-av{width:64px;height:64px;border-width:3px}.lb-merged .row{gap:14px}}
+/* الإحصائيات أعلى «نظرة عامة» */
+.lb-kp{margin-bottom:16px}.lb-kp .kp-home{margin:0}.lb-kp .alert{margin:0 0 12px}
+@media(max-width:700px){.lb-kp .kp-home{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.lb-kp .kp-home>:last-child{grid-column:1/-1}}
+
 /* ===== النمط الداكن: إضافات يدوية لما لا يصل إليه المولّد (أنماط مضمّنة في p-lbeed.js وسمات SVG) ===== */
 @media (prefers-color-scheme:dark){
 :root:not([data-theme=light]) .lb [style*="color:#6a8696"]{color:var(--muted)!important}
@@ -1522,5 +1534,7 @@ tr.lgd .ixp{margin-top:6px}
 :where(:root:not([data-theme=light])) .lgt[aria-expanded="true"]{color:var(--ink)}
 :where(:root:not([data-theme=light])) .lgt:focus-visible{outline:3px solid var(--gold)}
 :where(:root:not([data-theme=light])) tr.lgd td{background:#1e3c43}
+:where(:root:not([data-theme=light])) .lb-merged .lb-sub{color:rgba(255,255,255,.88)}
+:where(:root:not([data-theme=light])) .lb-merged .lb-sub b{color:#fff}
 }
 /* ===== نهاية النمط الداكن المولَّد ===== */

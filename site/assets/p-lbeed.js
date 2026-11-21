@@ -1,5 +1,5 @@
 /* «يحدث في لبيد» – نافذة قراءة فقط. تستدعي دوال التجميع lb_* فقط ولا تكتب في أي جدول. */
-async function lbeedPage(m) {
+async function lbeedPage(m, o = {}) {
   const SYS = { core: "النواة الرقمية", saas: "التقويم المدرسي الذكي", plans: "الخطط الذكية", community: "المجتمع المهني الذكي", indibati: "انضباطي", qiyami: "قيمي", booking: "احجز مرفق" };
   const COL = { core: "#0f8a94", saas: "#2f5ea8", plans: "#b86d0c", community: "#7a4bb5", indibati: "#b8434f", qiyami: "#24895a", booking: "#0da9a6" };
   const KIND = { meeting: "اجتماع", program: "برنامج", booking: "حجز", deadline: "موعد", task: "مهمة", calendar: "تقويم", attendance: "حضور", achievement: "إنجاز" };
@@ -35,6 +35,19 @@ async function lbeedPage(m) {
     <div class="lb-main"><div id="lbBody"></div>
     <p style="color:#6a8696;font-size:.82rem;margin:30px 0 6px">نافذة قراءة فقط تجمع ما تسجله أنظمة المدرسة السبعة من مصادرها الأصلية دون نسخ أو تعديل، وتحترم صلاحيات كل نظام. لا تُعرض فيها حالات فردية للطلاب، وتظهر الصور المنشورة فقط.</p></div></div>`;
   const body = m.querySelector("#lbBody");
+  /* بطاقة الترحيب الموحدة (PK.welcome) تُدمج في غلاف «يحدث في لبيد»: مربع واحد في الأعلى */
+  (() => {
+    const wc = document.querySelector(".pk-wc"), hero = m.querySelector(".lb-hero"); if (!wc || !hero) return;
+    const av = wc.querySelector(".pk-wc-av"), t = wc.querySelector(".pk-wc-t"), y = wc.querySelector("[data-pk-year]"), ttl = hero.querySelector(".ttl"), dtm = hero.querySelector(".dtm");
+    if (!t || !ttl) return;
+    t.insertAdjacentHTML("beforeend", `<span class="lb-sub"><b>يحدث في لبيد</b> · لبيد تتحرك، وإنجازاتها تُرى</span>`);
+    ttl.replaceWith(t); if (av) t.before(av); if (y && dtm) dtm.prepend(y);
+    hero.classList.add("lb-merged"); hero.setAttribute("aria-label", "الترحيب ونبض لبيد");
+    (wc.closest(".pk-wcw") || wc).remove();
+  })();
+  /* الإحصائيات (المؤشرات) داخل «نظرة عامة»: تُحمَّل مرة واحدة وتُنقل إلى أعلى المحتوى عند كل رسم */
+  const kp = o.kpi ? Object.assign(document.createElement("div"), { className: "lb-kp" }) : null;
+  if (kp) Promise.resolve(o.kpi(kp)).catch(console.error);
   const nd = nowRy();
   m.querySelector("#lbH").textContent = hijri(nd);
   m.querySelector("#lbG").textContent = greg(nd) + " م";
@@ -387,6 +400,7 @@ async function lbeedPage(m) {
       ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
       ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${sysCard(d, pl)}`;
+    if (kp) body.prepend(kp);
     body.querySelectorAll(".cu").forEach((el) => countUp(el, el.dataset.cu));
     Object.keys(SEL).forEach((k) => SEL[k] != null && applySel(k));
     await calWidget(body.querySelector("#lbCal"));
