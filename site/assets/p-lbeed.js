@@ -40,8 +40,13 @@ async function lbeedPage(m, o = {}) {
     const wc = document.querySelector(".pk-wc"), hero = m.querySelector(".lb-hero"); if (!wc || !hero) return;
     const av = wc.querySelector(".pk-wc-av"), t = wc.querySelector(".pk-wc-t"), y = wc.querySelector("[data-pk-year]"), ttl = hero.querySelector(".ttl"), dtm = hero.querySelector(".dtm");
     if (!t || !ttl) return;
-    t.insertAdjacentHTML("beforeend", `<span class="lb-sub"><b>يحدث في لبيد</b> · لبيد تتحرك، وإنجازاتها تُرى</span>`);
-    ttl.replaceWith(t); if (av) t.before(av); if (y && dtm) dtm.prepend(y);
+    // «يحدث في لبيد» هو العنوان الأبرز، والترحيب سطر صغير فوقه (الصورة والاسم والصفة)
+    const hi = document.createElement("div"); hi.className = "lb-hi";
+    const nm = t.querySelector("h2"), rl = t.querySelector("p"), pf = t.querySelector(".pk-wc-pf");
+    if (av) hi.append(av);
+    hi.insertAdjacentHTML("beforeend", `<span class="nm">${esc(nm ? nm.textContent : "")}</span>${rl ? `<span class="rl">${esc(rl.textContent)}</span>` : ""}`);
+    if (pf) hi.append(pf);
+    ttl.prepend(hi); if (y && dtm) dtm.prepend(y);
     hero.classList.add("lb-merged"); hero.setAttribute("aria-label", "الترحيب ونبض لبيد");
     (wc.closest(".pk-wcw") || wc).remove();
   })();
