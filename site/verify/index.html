@@ -21,6 +21,14 @@ button{font:inherit;font-weight:800;border:0;border-radius:12px;padding:10px 20p
 .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:14px}.kv div{background:var(--soft);border-radius:12px;padding:8px 12px}.kv span{display:block;color:var(--muted);font-size:.82rem}.kv b{word-break:break-word}
 .doc{width:100%;height:80vh;border:1px solid var(--line);border-radius:14px;background:#fff}
 .meta{color:var(--muted);font-size:.9rem}
+@media (prefers-color-scheme:dark){
+:root{--ink:#e3f0f5;--ink2:#b5c9d4;--muted:#8aa1b0;--line:#1f3a48;--brand:#3cc4c9;--soft:#0f2230;--ok:#4cc38a;--bad:#f0909a;color-scheme:dark}
+body{background:#0b1a24}
+header{background:linear-gradient(135deg,#126f78,#0b4a59)}
+.card{background:#11242f;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+input{background:#0f2230;color:var(--ink)}
+.st.ok .i{background:#1f7a50}.st.bad .i{background:#b42318}
+}
 </style>
 </head>
 <body>
