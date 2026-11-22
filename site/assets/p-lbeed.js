@@ -260,8 +260,8 @@ async function lbeedPage(m, o = {}) {
   function progInner() {
     const ps = (LWK.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day))); WP = ps;
     const pi = PSEL.k != null ? PD.findIndex((x) => x.name === PSEL.k) : -1, p = pi >= 0 ? PD[pi] : null; if (!p) PSEL.k = null;
-    const o0 = PO || { total: 0, done: 0, running: 0, late: 0 };
-    const o = p ? { all: p.total, done: p.done, run: p.running, late: p.late, doc: p.documented, und: p.undocumented } : { all: o0.total, done: o0.done, run: o0.running, late: o0.late, doc: sumOf(PD, "documented"), und: sumOf(PD, "undocumented") };
+    const progsOf = (x) => (x && x.programs) || [], allProgs = PD.flatMap(progsOf), cnt = (L) => Object.fromEntries(["all", "done", "run", "late", "doc", "und"].map((k) => [k, L.filter((g) => pOk(g, k)).length]));
+    const o = cnt(p ? progsOf(p) : allProgs), o0 = { total: allProgs.length };
     const col = p ? PCOL[pi % PCOL.length] : "var(--brand)", pct = pctOf(o.done, o.all), dpc = pctOf(o.doc, o.all), C = 2 * Math.PI * 52;
     const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية${p ? " · " + esc(p.name) : ""}</h4><p>${p ? "المؤشرات الآن لهذه الخطة وحدها · اضغط على أي مؤشر لفرز برامجها" : "اضغط على أي خطة لتتغير المؤشرات بحسبها، وعلى أي مؤشر لفرز البرامج"}</p></div><a href="/smart-plans/">انتقل إلى الخطط</a></div>`;
     const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" data-ring style="stroke:${col};stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>${p ? "إنجاز الخطة" : "نسبة الإنجاز"}</span></div></div>`;
