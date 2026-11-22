@@ -220,6 +220,8 @@ html,body{margin:0!important;padding:0!important;background:#fff;-webkit-print-c
         const whole = u.h2 + u.kids.join(""), h = await meas(whole);
         if (fits(h)) { place(whole, h); continue; }
         if (h <= AV && used > 0 && !u.gal && !o.flow) { newPage(); place(whole, h); continue; }
+        // اقتراب القسم من الهامش السفلي: إن بقي أقل من 30% من الصفحة فلا يبدأ القسم هنا، بل في صفحة جديدة
+        if (used > 0 && AV - used < AV * 0.3) newPage();
         await putPieces(u.kids.length ? u.kids : [""], u.h2, u.gal || !!o.flow);
       }
       if (!pages[pages.length - 1].length && pages.length > 1) pages.pop();
