@@ -260,14 +260,14 @@ async function lbeedPage(m, o = {}) {
   function progInner() {
     const ps = (LWK.events || []).filter((e) => e.kind === "program").sort((a, b) => String(a.day).localeCompare(String(b.day))); WP = ps;
     const pi = PSEL.k != null ? PD.findIndex((x) => x.name === PSEL.k) : -1, p = pi >= 0 ? PD[pi] : null; if (!p) PSEL.k = null;
-    const progsOf = (x) => (x && x.programs) || [], allProgs = PD.flatMap(progsOf), cnt = (L) => Object.fromEntries(["all", "done", "run", "late", "doc", "und"].map((k) => [k, L.filter((g) => pOk(g, k)).length]));
+    const progsOf = (x) => (x && x.programs) || [], pst = (x) => { const L = progsOf(x); return { total: L.length, done: L.filter((g) => g.state === "done").length, late: L.filter((g) => g.state === "late").length, documented: L.filter((g) => g.documented).length }; }, allProgs = PD.flatMap(progsOf), cnt = (L) => Object.fromEntries(["all", "done", "run", "late", "doc", "und"].map((k) => [k, L.filter((g) => pOk(g, k)).length]));
     const o = cnt(p ? progsOf(p) : allProgs), o0 = { total: allProgs.length };
     const col = p ? PCOL[pi % PCOL.length] : "var(--brand)", pct = pctOf(o.done, o.all), dpc = pctOf(o.doc, o.all), C = 2 * Math.PI * 52;
     const head = `<div class="dh"><span class="ico c">${ic("program")}</span><div><h4>الخطط الذكية${p ? " · " + esc(p.name) : ""}</h4><p>${p ? "المؤشرات الآن لهذه الخطة وحدها · اضغط على أي مؤشر لفرز برامجها" : "اضغط على أي خطة لتتغير المؤشرات بحسبها، وعلى أي مؤشر لفرز البرامج"}</p></div><a href="/smart-plans/">انتقل إلى الخطط</a></div>`;
     const ring = `<div class="pgr"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="t"/><circle cx="60" cy="60" r="52" class="v" data-ring style="stroke:${col};stroke-dasharray:${((C * pct) / 100).toFixed(1)} ${C.toFixed(1)}"/></svg><div><b>${num(pct)}<small>%</small></b><span>${p ? "إنجاز الخطة" : "نسبة الإنجاز"}</span></div></div>`;
     const kp = `<div class="pgk" role="group" aria-label="فرز البرامج حسب المؤشر">${PKF.map(([k, l, c]) => `<button type="button" data-pf="${k}" class="${c && o[k] ? c : ""} ${PSEL.f === k ? "on" : ""}" aria-pressed="${PSEL.f === k}"><b>${num(o[k])}</b>${l}</button>`).join("")}</div>`;
     const focus = p ? `<div class="pfo" style="--c:${col}">${pav(p.owner, p.owner_photo, "l")}<div class="tx"><small>مسؤول الخطة${p.year ? " · " + esc(p.year) : ""}</small><b>${esc(p.owner || "لم يُحدَّد")}</b>${p.owner_job ? `<small>${esc(p.owner_job)}</small>` : ""}${p.desc ? `<p>${esc(String(p.desc).slice(0, 220))}</p>` : ""}</div><div class="bars2"><div><span>نسبة التنفيذ <b>${num(pct)}%</b></span><div class="lb-bar"><i style="width:${pct}%"></i></div></div><div><span>نسبة التوثيق <b>${num(dpc)}%</b></span><div class="lb-bar"><i style="width:${dpc}%"></i></div></div></div></div>` : "";
-    const list = PD.length ? `<div class="plg">${selBtn(!p, 'data-pl="-1"', "كل الخطط", `${num(PD.length)} خطط · ${num(o0.total)} برنامجاً`)}${PD.map((x, i) => { const on = p === x, pc = pctOf(x.done, x.total); return `<button type="button" class="plc ${on ? "on" : p ? "dim" : ""}" data-pl="${i}" aria-pressed="${on}" style="--c:${PCOL[i % PCOL.length]}"><span class="top"><b>${esc(x.name)}</b>${x.late ? `<em class="bad">${num(x.late)} متعثر</em>` : ""}</span><span class="own">${pav(x.owner, x.owner_photo, "s")}<small>${esc(x.owner || "بلا مسؤول")}</small></span><span class="lb-bar"><i style="width:${pc}%"></i></span><span class="pcs"><i>${num(x.total)} برنامجاً</i><i>${num(x.done)} منفّذ</i><i>${num(x.documented)} موثق</i></span></button>`; }).join("")}</div>` : `<div class="lb-em">لا خطط مسجلة بعد.</div>`;
+    const list = PD.length ? `<div class="plg">${selBtn(!p, 'data-pl="-1"', "كل الخطط", `${num(PD.length)} خطط · ${num(o0.total)} برنامجاً`)}${PD.map((x, i) => { const on = p === x, X = pst(x), pc = pctOf(X.done, X.total); return `<button type="button" class="plc ${on ? "on" : p ? "dim" : ""}" data-pl="${i}" aria-pressed="${on}" style="--c:${PCOL[i % PCOL.length]}"><span class="top"><b>${esc(x.name)}</b>${X.late ? `<em class="bad">${num(X.late)} متعثر</em>` : ""}</span><span class="own">${pav(x.owner, x.owner_photo, "s")}<small>${esc(x.owner || "بلا مسؤول")}</small></span><span class="lb-bar"><i style="width:${pc}%"></i></span><span class="pcs"><i>${num(X.total)} برنامجاً</i><i>${num(X.done)} منفّذ</i><i>${num(X.documented)} موثق</i></span></button>`; }).join("")}</div>` : `<div class="lb-em">لا خطط مسجلة بعد.</div>`;
     let bottom;
     if (!p && PSEL.f == null) {
       const e = PSEL.pj != null ? ps[PSEL.pj] : null;
@@ -295,9 +295,13 @@ async function lbeedPage(m, o = {}) {
   let CSEL = null;
   function commInner() {
     const cs = CD, ci = CSEL != null ? cs.findIndex((x) => x.name === CSEL) : -1, c = ci >= 0 ? cs[ci] : null; if (!c) CSEL = null;
-    const K = ["meetings_held", "meetings_upcoming", "docs", "minutes_approved", "att_present", "hours", "tasks_open", "tasks_late", "posts", "outputs", "members"], v = c || {}; if (!c) K.forEach((k) => (v[k] = sumOf(cs, k)));
-    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية${c ? " · " + esc(c.name) : ""}</h4><p>${c ? "المؤشرات والأحداث الآن لهذا المجتمع وحده" : `${num(cs.length)} مجتمعاً نشطاً · اضغط على أي مجتمع لتتغير المؤشرات بحسبه`}</p></div><a href="${esc(c && c.link ? c.link : "/teachers-community/#/communities")}">انتقل إلى ${c ? "المجتمع" : "المجتمعات"}</a></div>`;
-    const tiles = `<div class="cmk" data-focus>${tile(v.meetings_held, "لقاءات منفّذة", "g")}${tile(v.meetings_upcoming, "لقاءات قادمة", "b")}${tile(v.docs, "لقاءات موثقة", "g")}${tile(v.minutes_approved, "محاضر معتمدة", "g")}${tile(v.att_present, "حضور مسجّل")}${tile(v.hours, "ساعات حضور معتمدة")}${tile(v.tasks_open, "مهام مفتوحة", v.tasks_late ? "y" : "")}${tile(v.tasks_late, "مهام متأخرة", v.tasks_late ? "r" : "")}${tile((v.posts || 0) + (v.outputs || 0), "منشورات ومخرجات")}${c ? "" : tile(v.members, "عضوية")}</div>`;
+    const K = ["meetings_total", "meetings_held", "meetings_upcoming", "docs", "minutes_approved", "att_total", "att_present", "att_approved", "hours", "tasks_open", "tasks_done", "tasks_late", "posts", "outputs", "members"], v = c || {}; if (!c) K.forEach((k) => (v[k] = sumOf(cs, k)));
+    const head = `<div class="dh"><span class="ico y">${ic("meeting")}</span><div><h4>المجتمعات المهنية${c ? " · " + esc(c.name) : ""}</h4><p>${c ? "إحصائيات هذا المجتمع وحده" : `${num(cs.length)} مجتمعاً نشطاً · اضغط على أي مجتمع لتتغير الإحصائيات بحسبه`}</p></div><a href="${esc(c && c.link ? c.link : "/teachers-community/#/communities")}">انتقل إلى ${c ? "المجتمع" : "المجتمعات"}</a></div>`;
+    const rate = (l, a, b) => `<div class="rb"><span>${l}<b>${num(pctOf(a, b))}%</b></span><div class="lb-bar"><i style="width:${Math.min(100, pctOf(a, b))}%"></i></div><small>${num(a)} من ${num(b)}</small></div>`;
+    const tiles = `<div class="stw" data-focus>
+      <div class="stg"><h6>اللقاءات</h6><div class="cmk">${tile(v.meetings_held, "منفّذة", "g")}${tile(v.meetings_upcoming, "قادمة", "b")}${tile(v.docs, "موثقة", "g")}${tile(v.minutes_approved, "محاضر معتمدة", "g")}</div>${rate("توثيق اللقاءات المنفّذة", v.docs, v.meetings_held)}</div>
+      <div class="stg"><h6>الحضور والساعات</h6><div class="cmk">${tile(v.att_present, "حضور مسجّل")}${tile(v.att_approved, "حضور معتمد", "g")}${tile(v.hours, "ساعة معتمدة")}${c ? "" : tile(v.members, "عضوية")}</div>${rate("اعتماد سجلات الحضور", v.att_approved, v.att_total)}</div>
+      <div class="stg"><h6>المهام والإنتاج</h6><div class="cmk">${tile(v.tasks_done, "مهام منجزة", "g")}${tile(v.tasks_open, "مهام مفتوحة", v.tasks_late ? "y" : "")}${tile(v.tasks_late, "مهام متأخرة", v.tasks_late ? "r" : "")}${tile((v.posts || 0) + (v.outputs || 0), "منشورات ومخرجات")}</div>${rate("إنجاز المهام", v.tasks_done, (v.tasks_done || 0) + (v.tasks_open || 0))}</div></div>`;
     let focus = "";
     if (c) {
       const meet = (c.meetings || []).map((x) => { const st = MST[x.status] || [x.status, ""]; return `<li class="pgi"><span class="lb-st ${st[1]}">${esc(st[0])}</span><div class="tx"><b>${x.no ? "اللقاء " + num(x.no) + " · " : ""}${esc(x.title)}</b><small>${esc(dt(x.at))}${x.location ? " · " + esc(x.location) : ""}</small>${x.status === "held" || x.invited ? `<small>الحضور: ${num(x.present)} من ${num(x.invited)}${x.images ? " · " + num(x.images) + " صورة موثقة" : ""}</small>` : ""}${x.decisions ? `<small class="dc2">القرارات: ${esc(String(x.decisions).slice(0, 140))}</small>` : ""}</div><span class="dchip ${x.documented ? "ok" : ""}">${x.documented ? "موثق" : x.status === "held" ? "غير موثق" : "—"}</span>${x.minutes ? `<span class="dchip ${x.minutes === "approved" ? "ok" : ""}">${x.minutes === "approved" ? "محضر معتمد" : "محضر قيد الاعتماد"}</span>` : ""}</li>`; }).join("");
@@ -306,12 +310,37 @@ async function lbeedPage(m, o = {}) {
         <h5>اللقاءات · ${num(c.meetings_total ?? (c.meetings || []).length)}</h5>${meet ? `<ul class="pgl2">${meet}</ul>` : em("لا لقاءات مسجلة بعد.")}${mem ? `<h5>الأعضاء · ${num(c.members)}</h5><div class="mem">${mem}</div>` : ""}</div>`;
     }
     const one = (x, i) => { const on = c === x; return `<button type="button" class="cm ${on ? "on" : c ? "dim" : ""}" data-cm="${i}" aria-pressed="${on}"><span class="ci">${ic("meeting")}</span><b>${esc(x.name)}</b><small>${esc(CKIND[x.kind] || x.kind || "")}${x.leader ? " · القائد: " + esc(x.leader) : ""}</small><span class="cn"><em>${num(x.members)}</em> أعضاء <em>${num(x.meetings_held)}</em> منفّذ <em>${num(x.docs)}</em> موثق</span></button>`; };
-    const evs = (c ? [[c, ci]] : cs.map((x, i) => [x, i])).flatMap(([x, i]) => (x.activity || []).map((a) => ({ ...a, cn: x.name, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, c ? 15 : 10);
+    const evs = (c ? [[c, ci]] : cs.map((x, i) => [x, i])).flatMap(([x, i]) => (x.activity || []).map((a) => ({ ...a, cn: x.name, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
     return `${head}${tiles}${focus}${cs.length ? `<div class="cmg">${selBtn(!c, 'data-cm="-1"', "كل المجتمعات", `${num(cs.length)} مجتمعاً`)}${cs.map(one).join("")}</div>` : em("لا مجتمعات نشطة.")}
-      <div class="ce"><h5>${c ? "ماذا يحدث في المجتمع" : "آخر ما حدث داخل المجتمعات"}</h5>${evs.length ? evs.map((x) => { const k = AK[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" ${c ? "" : `data-cm="${x.i}"`}><span class="kd ${x.kind === "doc" || x.kind === "minutes" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${c ? "" : esc(x.cn)}${x.who ? (c ? "" : " · ") + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div>`;
+      <div class="ce"><h5>${c ? "آخر 3 أحداث في المجتمع" : "آخر 3 أحداث داخل المجتمعات"}</h5>${evs.length ? evs.map((x) => { const k = AK[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" ${c ? "" : `data-cm="${x.i}"`}><span class="kd ${x.kind === "doc" || x.kind === "minutes" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${c ? "" : esc(x.cn)}${x.who ? (c ? "" : " · ") + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div>`;
   }
   function commCard() { return `<section class="lb-p dkc lb-cm" id="lbCm">${commInner()}</section>`; }
   const reCm = () => swap("lbCm", commInner(), [".cmg"]);
+  /* ----- الممارسات التعليمية: بنفس هوية المجتمعات المهنية، إحصائيات وثلاثة أحداث فقط ----- */
+  const PRK = { practice: "ممارسة تعليمية", strategy: "استراتيجية", project: "مشروع" };
+  let PR = null, PRSEL = null;
+  function prInner() {
+    const cs = PR || [], ci = PRSEL != null ? cs.findIndex((x) => x.id === PRSEL) : -1, c = ci >= 0 ? cs[ci] : null; if (!c) PRSEL = null;
+    const K = ["members", "targets", "experts", "resources", "reports_total", "reports_approved", "reports_pending", "students", "support_total", "support_done"], v = c || {}; if (!c) K.forEach((k) => (v[k] = sumOf(cs, k)));
+    const head = `<div class="dh"><span class="ico y">${ic("plan")}</span><div><h4>الممارسات التعليمية${c ? " · " + esc(c.title) : ""}</h4><p>${c ? "إحصائيات هذه الممارسة وحدها" : `${num(cs.length)} ممارسة مفتوحة · اضغط على أي ممارسة لتتغير الإحصائيات بحسبها`}</p></div><a href="${esc(c && c.link ? c.link : "/teachers-community/#/practices")}">انتقل إلى ${c ? "الممارسة" : "الممارسات"}</a></div>`;
+    const rate = (l, a, b) => `<div class="rb"><span>${l}<b>${num(pctOf(a, b))}%</b></span><div class="lb-bar"><i style="width:${Math.min(100, pctOf(a, b))}%"></i></div><small>${num(a)} من ${num(b)}</small></div>`;
+    const tiles = `<div class="stw" data-focus>
+      <div class="stg"><h6>المشاركة</h6><div class="cmk">${tile(v.members, "منضمّون", "g")}${tile(v.targets, "مستهدفون", "b")}${tile(v.experts, "خبراء")}${c ? "" : tile(cs.length, "ممارسة")}</div>${rate("انضمام المستهدفين", Math.min(v.members, v.targets || v.members), v.targets || v.members)}</div>
+      <div class="stg"><h6>التطبيق</h6><div class="cmk">${tile(v.reports_total, "تقارير تنفيذ")}${tile(v.reports_approved, "معتمدة", "g")}${tile(v.reports_pending, "بانتظار المراجعة", v.reports_pending ? "y" : "")}${tile(v.students, "طالباً استفاد")}</div>${rate("اعتماد تقارير التنفيذ", v.reports_approved, v.reports_total)}</div>
+      <div class="stg"><h6>الدعم والموارد</h6><div class="cmk">${tile(v.resources, "موارد")}${tile(v.support_total, "طلبات دعم")}${tile(v.support_done, "منجزة", "g")}</div>${rate("إنجاز طلبات الدعم", v.support_done, v.support_total)}</div></div>`;
+    let focus = "";
+    if (c) {
+      const mem = (c.member_list || []).map((x) => `<span class="mchip">${pav(x.name, x.photo, "xs")}${esc(x.name)}${x.expert ? "<em>خبير</em>" : ""}</span>`).join("");
+      focus = `<div class="cfo"><div class="ownr">${pav(c.owner, c.owner_photo, "l")}<div><small>مسؤول الممارسة · ${esc(PRK[c.kind] || c.kind || "ممارسة")}${c.category ? " · " + esc(c.category) : ""}</small><b>${esc(c.owner || "لم يُحدَّد")}</b><small>${c.starts_on ? "من " + esc(fmt(c.starts_on)) : ""}${c.ends_on ? " إلى " + esc(fmt(c.ends_on)) : ""}</small></div></div>${c.summary ? `<p class="dsc">${esc(String(c.summary).slice(0, 220))}</p>` : ""}${mem ? `<h5>المنضمّون · ${num(c.members)}</h5><div class="mem">${mem}</div>` : ""}</div>`;
+    }
+    const one = (x, i) => { const on = c === x; return `<button type="button" class="cm ${on ? "on" : c ? "dim" : ""}" data-pr="${i}" aria-pressed="${on}"><span class="ci">${ic("plan")}</span><b>${esc(x.title)}</b><small>${esc(PRK[x.kind] || x.kind || "")}${x.category ? " · " + esc(x.category) : ""}</small><span class="cn"><em>${num(x.members)}</em> منضم <em>${num(x.reports_total)}</em> تقرير <em>${num(x.resources)}</em> مورد</span></button>`; };
+    const evs = (c ? [[c, ci]] : cs.map((x, i) => [x, i])).flatMap(([x, i]) => (x.activity || []).map((a) => ({ ...a, cn: x.title, i }))).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
+    const AKP = { join: ["انضمام", "g"], report: ["تقرير", "y"], resource: ["مورد", "p"], support: ["دعم", "b"] };
+    return `${head}${tiles}${focus}${cs.length ? `<div class="cmg">${selBtn(!c, 'data-pr="-1"', "كل الممارسات", `${num(cs.length)} ممارسة`)}${cs.map(one).join("")}</div>` : em("لا ممارسات مفتوحة بعد.")}
+      <div class="ce"><h5>${c ? "آخر 3 أحداث في الممارسة" : "آخر 3 أحداث داخل الممارسات"}</h5>${evs.length ? evs.map((x) => { const k = AKP[x.kind] || [x.kind, ""]; return `<button type="button" class="ei" ${c ? "" : `data-pr="${x.i}"`}><span class="kd ${x.kind === "report" ? "doc" : ""}">${esc(k[0])}</span><span class="tx"><b>${esc(x.text)}</b><small>${c ? "" : esc(x.cn)}${x.who ? (c ? "" : " · ") + esc(x.who) : ""}</small></span><time>${REL(x.at)}</time></button>`; }).join("") : em("لا أحداث حديثة.")}</div>`;
+  }
+  function prCard() { return PR ? `<section class="lb-p dkc lb-cm lb-pr" id="lbPr">${prInner()}</section>` : ""; }
+  const rePr = () => swap("lbPr", prInner(), [".cmg"]);
   /* ----- لوحات التفاصيل داخل البطاقة (بدل النوافذ المنبثقة) ----- */
   const xsvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const ixp = (k, col, kind, title, rows, href, label, extra, after) => `<div class="ixp" style="--c:${col}"><div class="ih"><div><span>${esc(kind)}</span><b>${esc(title)}</b></div><button type="button" class="icl" data-x="${k}" aria-label="إخفاء التفاصيل">${xsvg}</button></div>${extra || ""}${rows.filter((r) => r[1] != null && r[1] !== "").length ? `<dl>${rows.filter((r) => r[1] != null && r[1] !== "").map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>` : ""}${after || ""}${href ? `<a class="go" href="${esc(href)}">${ic("up")} ${esc(label)}</a>` : ""}</div>`;
@@ -334,7 +363,7 @@ async function lbeedPage(m, o = {}) {
   }
   /* كل الضغطات داخل اللوحة تُعالج في مكانها؛ الروابط الوحيدة هي أزرار الانتقال إلى الأنظمة فتفتح صفحاتها مباشرة */
   m.addEventListener("click", (ev) => {
-    const t = ev.target.closest("[data-pl],[data-pf],[data-pj],[data-cm],[data-dm],[data-sq],[data-dc],[data-gr],[data-ac],[data-tp],[data-x]");
+    const t = ev.target.closest("[data-pl],[data-pf],[data-pj],[data-cm],[data-pr],[data-dm],[data-sq],[data-dc],[data-gr],[data-ac],[data-tp],[data-x]");
     if (!t || !m.contains(t)) return;
     const d = t.dataset;
     if (d.x != null) { SEL[d.x] = null; return applySel(d.x); }
@@ -343,6 +372,7 @@ async function lbeedPage(m, o = {}) {
     if (d.pf != null) { PSEL.f = PSEL.f === d.pf ? (PSEL.k ? "all" : null) : d.pf; PSEL.pj = null; return rePg(); }
     if (d.pj != null) { PSEL.pj = PSEL.pj === +d.pj ? null : +d.pj; return rePg(); }
     if (d.cm != null) { const x = CD[+d.cm]; CSEL = x && CSEL !== x.name ? x.name : null; return reCm(); }
+    if (d.pr != null) { const x = (PR || [])[+d.pr]; PRSEL = x && PRSEL !== x.id ? x.id : null; return rePr(); }
     if (d.dm != null) { const x = (IND.domains || [])[+d.dm]; DSEL = x && DSEL !== x.name ? x.name : null; return reInd(); }
     if (d.sq != null) return pickSys(d.sq);
   });
@@ -391,7 +421,7 @@ async function lbeedPage(m, o = {}) {
   async function overview() {
     const [d, pl, docs, gl, ach, pd, cs, cev, top, hn, md] = await Promise.all([rpc("lb_day", { p_day: null }), hero(), rpc("lb_docs", { p_limit: 12 }).catch(() => []), rpc("lb_growth_latest", { p_n: 8 }).catch(() => []), rpc("lb_achievers", { p_n: 6 }).catch(() => []), rpc("lb_periods", { p_day: null }).catch(() => ({ periods: [] })), rpc("lb_communities").catch(() => []), rpc("lb_feed", { p_from: null, p_to: null, p_sys: "community", p_kind: null, p_op: null, p_ach: null, p_limit: 6, p_offset: 0 }).then((r) => r.items).catch(() => []), rpc("lb_top", { p_n: 10 }).catch(() => []), rpc("lb_honor").catch(() => ({ badges: [], link: "/qiyami/leaderboard.html" })), rpc("lb_media").catch(() => ({ people: [] }))]);
     PO = await rpc("lb_plans_overview").catch(() => null);
-    [PD, CD] = await Promise.all([rpc("lb_plans_detail").catch(() => []), rpc("lb_communities_detail").catch(() => [])]);
+    [PD, CD, PR] = await Promise.all([rpc("lb_plans_detail").catch(() => []), rpc("lb_communities_detail").catch(() => []), rpc("lb_practices_detail").catch(() => null)]);
     people = {}; (md.people || []).forEach((p) => (people[p.name] = p));
     const q = d.qiyami || {};
     body.innerHTML = `${disCard(d.attendance || {})}
@@ -402,6 +432,7 @@ async function lbeedPage(m, o = {}) {
       ${achCard(ach || [])}
       ${periodsCard(pd || { periods: [] })}
       ${commCard()}
+      ${prCard()}
       ${topStrip(top || [], hn.link || "/qiyami/leaderboard.html")}
       ${qCard(q.givers, hn.badges, hn.link || "/qiyami/leaderboard.html", q.week && q.week.badges)}
       ${sysCard(d, pl)}`;

@@ -1544,3 +1544,12 @@ tr.lgd .ixp{margin-top:6px}
 :where(:root:not([data-theme=light])) .lb-hi .rl{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3)}
 }
 /* ===== نهاية النمط الداكن المولَّد ===== */
+
+/* إحصائيات المجتمعات والممارسات */
+.lb-cm .stw{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:4px 24px 14px}
+.lb-cm .stg{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:12px}
+.lb-cm .stg h6{margin:0 0 8px;font-size:.82rem;color:#f6c25e;font-weight:800}
+.lb-cm .stg .cmk{margin:0 0 10px;grid-template-columns:repeat(auto-fit,minmax(70px,1fr))}
+.lb-cm .rb span{display:flex;justify-content:space-between;font-size:.76rem;color:#d4eef1}.lb-cm .rb span b{color:#f6c25e}
+.lb-cm .rb .lb-bar{margin:4px 0 2px;background:rgba(255,255,255,.14)}.lb-cm .rb small{color:#a9d4d9;font-size:.7rem}
+@media (max-width:700px){.lb-cm .stw{margin-inline:12px;grid-template-columns:1fr}}
