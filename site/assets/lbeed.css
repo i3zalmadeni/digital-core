@@ -1553,3 +1553,5 @@ tr.lgd .ixp{margin-top:6px}
 .lb-cm .rb span{display:flex;justify-content:space-between;font-size:.76rem;color:#d4eef1}.lb-cm .rb span b{color:#f6c25e}
 .lb-cm .rb .lb-bar{margin:4px 0 2px;background:rgba(255,255,255,.14)}.lb-cm .rb small{color:#a9d4d9;font-size:.7rem}
 @media (max-width:700px){.lb-cm .stw{margin-inline:12px;grid-template-columns:1fr}}
+.pfo .go{grid-column:1/-1;justify-self:start;display:inline-flex;gap:8px;align-items:center;background:var(--grad);color:#fff;text-decoration:none;font-weight:800;font-size:.88rem;border-radius:12px;padding:9px 18px}
+.pfo .go svg{width:16px;height:16px}.pfo .go:hover{filter:brightness(1.08)}
